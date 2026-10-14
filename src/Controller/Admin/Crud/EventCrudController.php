@@ -80,7 +80,7 @@ class EventCrudController extends AbstractCrudController
         yield IdField::new('id')->onlyOnIndex();
         yield TextField::new('title', '@agenda.admin.event.title')->setColumns(8);
         yield StateField::new('state')->setColumns(4);
-        yield SlugField::new('slug')->setColumns(4)->hideOnIndex();
+        yield SlugField::new('slug')->setTargetFieldName('title')->setColumns(4)->hideOnIndex();
         yield DateTimePickerField::new('startsAt', '@agenda.admin.event.starts_at')->setFormTypeOption('input', 'datetime_immutable')->setColumns(3);
         yield DateTimePickerField::new('endsAt', '@agenda.admin.event.ends_at')->setFormTypeOption('input', 'datetime_immutable')->setColumns(3)->hideOnIndex();
         yield TextField::new('timezone', '@agenda.admin.event.timezone')->setColumns(2)->hideOnIndex()->setHelp('@agenda.admin.event.timezone_help');
@@ -88,15 +88,15 @@ class EventCrudController extends AbstractCrudController
         yield BooleanField::new('cancelled', '@agenda.admin.event.cancelled')->setColumns(2);
         yield AssociationField::new('venue', '@agenda.admin.event.venue')->setColumns(6)->setRequired(false);
         yield SelectField::new('role', '@agenda.admin.event.role')->setChoices($roles)->setColumns(3);
-        yield TextField::new('ensemble', '@agenda.admin.event.ensemble')->setColumns(6)->hideOnIndex();
-        yield TextField::new('conductor', '@agenda.admin.event.conductor')->setColumns(6)->hideOnIndex();
-        yield TextareaField::new('programme', '@agenda.admin.event.programme')->hideOnIndex()->setHelp('@agenda.admin.event.programme_help');
-        yield TextareaField::new('performers', '@agenda.admin.event.performers')->hideOnIndex()->setHelp('@agenda.admin.event.performers_help');
-        yield TextField::new('ticketsUrl', '@agenda.admin.event.tickets_url')->setColumns(6)->hideOnIndex();
-        yield TextField::new('eventUrl', '@agenda.admin.event.event_url')->setColumns(6)->hideOnIndex();
-        yield ImageField::new('cover', '@agenda.admin.event.cover')->setColumns(6)->hideOnIndex();
-        yield TextField::new('headline', '@agenda.admin.event.headline')->setColumns(12)->hideOnIndex();
-        yield TextareaField::new('excerpt', '@agenda.admin.event.excerpt')->hideOnIndex()->setHelp('@agenda.admin.event.excerpt_help');
+        yield TextField::new('ensemble', '@agenda.admin.event.ensemble')->setRequired(false)->setColumns(6)->hideOnIndex();
+        yield TextField::new('conductor', '@agenda.admin.event.conductor')->setRequired(false)->setColumns(6)->hideOnIndex();
+        yield TextareaField::new('programme', '@agenda.admin.event.programme')->setRequired(false)->hideOnIndex()->setHelp('@agenda.admin.event.programme_help');
+        yield TextareaField::new('performers', '@agenda.admin.event.performers')->setRequired(false)->hideOnIndex()->setHelp('@agenda.admin.event.performers_help');
+        yield TextField::new('ticketsUrl', '@agenda.admin.event.tickets_url')->setRequired(false)->setColumns(6)->hideOnIndex();
+        yield TextField::new('eventUrl', '@agenda.admin.event.event_url')->setRequired(false)->setColumns(6)->hideOnIndex();
+        yield ImageField::new('cover', '@agenda.admin.event.cover')->setRequired(false)->setColumns(6)->hideOnIndex();
+        yield TextField::new('headline', '@agenda.admin.event.headline')->setRequired(false)->setColumns(12)->hideOnIndex();
+        yield TextareaField::new('excerpt', '@agenda.admin.event.excerpt')->setRequired(false)->hideOnIndex()->setHelp('@agenda.admin.event.excerpt_help');
         yield EditorField::new('content', '@agenda.admin.event.content')->hideOnIndex();
         yield TextField::new('sourceUid', '@agenda.admin.event.source_uid')->onlyOnDetail();
         // Only a date read from a calendar has texts a sync could overwrite.

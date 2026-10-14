@@ -44,15 +44,15 @@ class VenueCrudController extends AbstractCrudController
     {
         yield IdField::new('id')->onlyOnIndex();
         yield TextField::new('name', '@agenda.admin.venue.name')->setColumns(6);
-        yield TextField::new('hall', '@agenda.admin.venue.hall')->setColumns(6)->hideOnIndex();
-        yield TextField::new('address', '@agenda.admin.venue.address')->setColumns(6)->hideOnIndex();
-        yield TextField::new('postcode', '@agenda.admin.venue.postcode')->setColumns(2)->hideOnIndex();
-        yield TextField::new('city', '@agenda.admin.venue.city')->setColumns(4);
-        yield CountryField::new('country', '@agenda.admin.venue.country')->setColumns(4);
-        yield TextField::new('website', '@agenda.admin.venue.website')->setColumns(4)->hideOnIndex();
-        yield TextField::new('mapUrl', '@agenda.admin.venue.map_url')->setColumns(4)->hideOnIndex()->setHelp('@agenda.admin.venue.map_url_help');
-        yield NumberField::new('latitude', '@agenda.admin.venue.latitude')->setColumns(2)->hideOnIndex();
-        yield NumberField::new('longitude', '@agenda.admin.venue.longitude')->setColumns(2)->hideOnIndex();
+        yield TextField::new('hall', '@agenda.admin.venue.hall')->setRequired(false)->setColumns(6)->hideOnIndex();
+        yield TextField::new('address', '@agenda.admin.venue.address')->setRequired(false)->setColumns(6)->hideOnIndex();
+        yield TextField::new('postcode', '@agenda.admin.venue.postcode')->setRequired(false)->setColumns(2)->hideOnIndex();
+        yield TextField::new('city', '@agenda.admin.venue.city')->setRequired(false)->setColumns(4);
+        yield CountryField::new('country', '@agenda.admin.venue.country')->setRequired(false)->setColumns(4);
+        yield TextField::new('website', '@agenda.admin.venue.website')->setRequired(false)->setColumns(4)->hideOnIndex();
+        yield TextField::new('mapUrl', '@agenda.admin.venue.map_url')->setRequired(false)->setColumns(4)->hideOnIndex()->setHelp('@agenda.admin.venue.map_url_help');
+        yield NumberField::new('latitude', '@agenda.admin.venue.latitude')->setRequired(false)->setColumns(2)->hideOnIndex();
+        yield NumberField::new('longitude', '@agenda.admin.venue.longitude')->setRequired(false)->setColumns(2)->hideOnIndex();
         yield TextField::new('slug', '@agenda.admin.venue.slug')->onlyOnDetail();
     }
 }
