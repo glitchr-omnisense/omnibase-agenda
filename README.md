@@ -137,10 +137,10 @@ back, so one omnibase site can take another's dates (see below).
 The page offers `webcal://…/agenda.ics`: a phone, Apple Calendar or Outlook
 subscribes to it and follows the changes; Google Calendar takes the same
 address in *Other calendars → From URL*. Each date has two links more: Google
-Calendar's own template page and its `.ics`, both written by glitchr/omnibase's
+Calendar's own template page and its `.ics`, both written by omniscient/omnibase's
 `Base\Service\Calendar` from `Event::toCalendarEntry()` (`docs/calendar.md`).
 
-The files are written by hand (glitchr/omnibase's `Base\Service\Calendar\Ics`, RFC 5545): CRLF, lines folded at
+The files are written by hand (omniscient/omnibase's `Base\Service\Calendar\Ics`, RFC 5545): CRLF, lines folded at
 75 octets, texts escaped, the hour in the hall's timezone with its
 `VTIMEZONE`, whole days as dates, `STATUS:CANCELLED`, and the UID of the entry
 a date was imported from, so a calendar that holds both never shows it twice.
