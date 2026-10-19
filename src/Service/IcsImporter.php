@@ -4,6 +4,8 @@ namespace Base\Agenda\Service;
 
 use Base\Agenda\Entity\Event;
 use Base\Agenda\Entity\Venue;
+use Base\Agenda\Enum\Role;
+use Base\Agenda\Model\Change;
 use Base\Agenda\Model\ImportSummary;
 use Base\Agenda\Model\ParsedEvent;
 use Base\Agenda\Repository\EventRepository;
@@ -27,9 +29,18 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * (Service\DescriptionParser: the ensemble, the conductor, the role, the
  * performers, the programme, the tickets) - what it does not say stays as
  * written on the site, and a date marked `syncLocked` takes only its hours
- * and its cancellation. A picture the source has becomes the cover of a
- * date that has none. A new date goes online at once; one that left its
- * calendar is marked cancelled, not deleted.
+ * and its cancellation. A house's picture the source has (Squarespace's,
+ * another site's) becomes the photo of a house that has none, a date's own
+ * the cover of a date that has none. A new date goes online at once.
+ *
+ * Every change is told (Model\Change: each field as it was and as it
+ * becomes), and can be only told: import(apply: false) is the preview the
+ * back office shows before "Apply". A date gone from its calendar is
+ * neither cancelled nor deleted behind anyone's back - a slip of the
+ * finger in Google Calendar would strike a concert through on the site -
+ * but held (Change::MISSING, the `agenda.sync.missing` setting) until
+ * someone says whether it is cancelled or kept (resolveMissing()). The
+ * syncs that changed something are kept, latest first (history()).
  */
 final class IcsImporter
 {
@@ -39,13 +50,23 @@ final class IcsImporter
     /** The setting the last sync's summary is kept in, as JSON. */
     public const LAST_SYNC_SETTING = 'agenda.sync.last';
 
+    /** The setting the syncs that changed something are kept in, latest first, as JSON. */
+    public const HISTORY_SETTING = 'agenda.sync.history';
+
+    /** The setting the dates gone from their calendar wait in (their ids), as JSON. */
+    public const MISSING_SETTING = 'agenda.sync.missing';
+
+    /** How many syncs the history keeps, and how many changes of each. */
+    private const HISTORY_RUNS = 10;
+    private const HISTORY_CHANGES = 100;
+
     /** How many pages of a Squarespace page's past dates are read. */
     private const SQUARESPACE_PAGES = 6;
 
     /** How many pages of another site's feed are read. */
     private const FEED_PAGES = 20;
 
-    /** The largest picture taken as a cover (the Event's Uploader's limit). */
+    /** The largest picture taken as a cover or a house's photo (their Uploader's limit). */
     private const IMAGE_MAX_BYTES = 8 * 1024 * 1024;
 
     /** @var array<string, Venue> the venues of this run, by name and city */
@@ -102,45 +123,119 @@ final class IcsImporter
         $this->settings?->set(self::ADDRESS_SETTING, $address, self::locale());
     }
 
-    /** What the last sync of the calendars did, for the back office: when, and its counts. */
+    /**
+     * What a sync that was applied did, for the back office: when, its
+     * counts and errors (the last sync), its changes (the history, when it
+     * changed something), the dates it found gone (waiting for a word).
+     */
     public function remember(ImportSummary $summary, ?\DateTimeInterface $at = null): void
     {
+        $at = \DateTimeImmutable::createFromInterface($at ?? new \DateTimeImmutable())->format(\DATE_ATOM);
         try {
-            $this->settings?->set(self::LAST_SYNC_SETTING, json_encode([
-                'at' => \DateTimeImmutable::createFromInterface($at ?? new \DateTimeImmutable())->format(\DATE_ATOM),
-                ...$summary->toArray(),
-                'errors' => $summary->errors,
-            ], \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE), self::locale());
+            $this->writeSetting(self::LAST_SYNC_SETTING, ['at' => $at, ...$summary->toArray(), 'errors' => $summary->errors]);
+            if (!$summary->isEmpty() || $summary->errors) {
+                $this->writeSetting(self::HISTORY_SETTING, \array_slice([[
+                    'at' => $at,
+                    ...$summary->toArray(),
+                    'errors' => $summary->errors,
+                    'changes' => array_map(fn (Change $change) => $change->toArray(), \array_slice($summary->changes, 0, self::HISTORY_CHANGES)),
+                    'more' => max(0, \count($summary->changes) - self::HISTORY_CHANGES),
+                ], ...$this->history()], 0, self::HISTORY_RUNS));
+            }
+            // A calendar out of reach said nothing of its dates: the ones waiting stay waiting.
+            $missing = $summary->missingIds();
+            $this->writeSetting(self::MISSING_SETTING, array_values(array_unique($summary->errors ? [...$this->missingIds(), ...$missing] : $missing)));
         } catch (\Throwable) {
             // Not remembered: the sync itself is done.
         }
     }
 
-    /** @return array{at: string, created: int, updated: int, cancelled: int, unchanged?: int, errors: list<string>}|null */
+    /** @return array{at: string, created: int, updated: int, cancelled: int, missing: int, unchanged?: int, errors: list<string>}|null */
     public function lastSync(): ?array
     {
-        try {
-            $last = $this->settings?->getScalar(self::LAST_SYNC_SETTING);
-        } catch (\Throwable) {
-            return null;
-        }
-        $last = \is_string($last) ? json_decode($last, true) : $last;
+        $last = $this->readSetting(self::LAST_SYNC_SETTING);
 
-        return \is_array($last) && isset($last['at']) ? $last + ['created' => 0, 'updated' => 0, 'cancelled' => 0, 'errors' => []] : null;
+        return \is_array($last) && isset($last['at']) ? $last + ['created' => 0, 'updated' => 0, 'cancelled' => 0, 'missing' => 0, 'errors' => []] : null;
+    }
+
+    /** @return list<array{at: string, created: int, updated: int, cancelled: int, missing: int, errors: list<string>, changes: list<Change>, more: int}> the syncs that changed something, latest first */
+    public function history(): array
+    {
+        $history = $this->readSetting(self::HISTORY_SETTING);
+
+        return array_values(array_map(fn (array $run) => ['changes' => array_map(fn ($change) => \is_array($change) ? Change::fromArray($change) : $change, $run['changes'] ?? [])]
+            + $run + ['created' => 0, 'updated' => 0, 'cancelled' => 0, 'missing' => 0, 'errors' => [], 'more' => 0], array_filter(\is_array($history) ? $history : [], fn ($run) => \is_array($run) && isset($run['at']))));
+    }
+
+    /** @return list<int> the dates gone from their calendar, waiting for a word */
+    public function missingIds(): array
+    {
+        $ids = $this->readSetting(self::MISSING_SETTING);
+
+        return \is_array($ids) ? array_values(array_map('intval', $ids)) : [];
+    }
+
+    /** @return list<Event> those dates, still to come and not cancelled meanwhile */
+    public function missing(): array
+    {
+        $ids = $this->missingIds();
+
+        return $ids ? array_values(array_filter($this->events->findBy(['id' => $ids], ['startsAt' => 'ASC']), fn (Event $event) => !$event->isCancelled() && $event->isUpcoming())) : [];
     }
 
     /**
-     * Every source configured, or the ones given.
+     * The word on dates gone from their calendar: cancelled (struck through
+     * on the site, who had a ticket finds it), or kept - the site's own
+     * from now on, no calendar asks about it again (an entry back in its
+     * calendar takes it back).
+     *
+     * @param list<int> $ids
+     *
+     * @return int the dates settled
+     */
+    public function resolveMissing(array $ids, bool $cancel): int
+    {
+        $waiting = $this->missingIds();
+        $settled = 0;
+        foreach ($this->events->findBy(['id' => array_values(array_intersect($waiting, array_map('intval', $ids)))]) as $event) {
+            $cancel ? $event->setCancelled(true) : $event->setSource(null);
+            ++$settled;
+        }
+        $this->entityManager->flush();
+        $this->writeSetting(self::MISSING_SETTING, array_values(array_diff($waiting, array_map('intval', $ids))));
+
+        return $settled;
+    }
+
+    private function writeSetting(string $setting, mixed $value): void
+    {
+        $this->settings?->set($setting, json_encode($value, \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE), self::locale());
+    }
+
+    private function readSetting(string $setting): mixed
+    {
+        try {
+            $value = $this->settings?->getScalar($setting);
+        } catch (\Throwable) {
+            return null; // no settings table yet: nothing kept
+        }
+
+        return \is_string($value) ? json_decode($value, true) : $value;
+    }
+
+    /**
+     * Every source configured, or the ones given - applied, or only told
+     * ($apply false: the preview).
      *
      * @param list<string>|null $sources
      */
-    public function sync(?array $sources = null): ImportSummary
+    public function sync(?array $sources = null, bool $apply = true): ImportSummary
     {
         $summary = new ImportSummary();
         foreach ($sources ?? $this->getSources() as $source) {
             try {
                 $address = preg_match('#^(webcals?|https?)://#i', trim($source)) ? trim($source) : null;
-                $summary->add($this->import($this->read($source), self::key($source), $address));
+                $summary->add($this->import($this->read($source), self::key($source), $address, $apply));
             } catch (\Throwable $e) {
                 // One calendar out of reach: the others are read, and nothing of its own is cancelled.
                 $summary->errors[] = sprintf('%s: %s', self::display($source), self::display($e->getMessage()));
@@ -155,9 +250,11 @@ final class IcsImporter
      * One source's content, already read: an iCalendar file, a Squarespace
      * events page's JSON or an agenda feed. $source names it, so that the
      * dates which left it can be told from the ones of another calendar;
-     * $address, where it was read, is where its next pages are.
+     * $address, where it was read, is where its next pages are. $apply
+     * false: nothing is written, nothing is fetched (no picture), the
+     * changes are only told.
      */
-    public function import(string $content, string $source = 'ics', ?string $address = null): ImportSummary
+    public function import(string $content, string $source = 'ics', ?string $address = null, bool $apply = true): ImportSummary
     {
         $summary = new ImportSummary();
         $seen = [];
@@ -167,31 +264,46 @@ final class IcsImporter
             }
             $seen[$parsed->uid] = true;
             $event = $this->events->findBySourceUid($parsed->uid);
+            $proposal = $this->proposal($event, $parsed);
 
             if (!$event) {
-                $event = $this->create($parsed, $source);
-                $this->entityManager->persist($event);
-                ++$summary->created;
+                $summary->record(new Change(Change::CREATED, $parsed->summary, self::clock($parsed->start, $parsed->timezone, $parsed->allDay), null, $this->diff(null, $proposal)));
+                if ($apply) {
+                    $this->entityManager->persist($this->create($parsed, $source, $proposal));
+                }
                 continue;
             }
 
-            if ($this->update($event, $parsed, $source)) {
-                $parsed->cancelled ? ++$summary->cancelled : ++$summary->updated;
-            } else {
-                ++$summary->unchanged;
+            $fields = $this->diff($event, $proposal);
+            $change = $fields ? new Change(
+                isset($fields['cancelled']) && $proposal['cancelled'] ? Change::CANCELLED : Change::UPDATED,
+                (string) $event->getTitle(),
+                self::clock($event->getStartsAt(), $event->getTimezone(), $event->isAllDay()),
+                $event->getId(),
+                $fields,
+            ) : null;
+            if ($apply) {
+                $this->apply($event, $proposal);
+                $event->setSource($source);
+                $event->setSourceUpdatedAt($parsed->lastModified);
+                if (!$event->isSyncLocked()) {
+                    $this->pictures($event, $parsed);
+                }
             }
+            $change ? $summary->record($change) : ++$summary->unchanged;
         }
 
-        // What is no longer in its calendar did not take place. Only the dates to
+        // Gone from its calendar: held, not cancelled (see the class). Only the dates to
         // come are asked: a Squarespace page lists the past ones a few pages deep.
         foreach ($this->events->findUpcomingOfSource($source) as $event) {
-            if (!isset($seen[$event->getSourceUid()])) {
-                $event->setCancelled(true);
-                ++$summary->cancelled;
+            if (!isset($seen[$event->getSourceUid()]) && !$event->isCancelled()) {
+                $summary->record(new Change(Change::MISSING, (string) $event->getTitle(), self::clock($event->getStartsAt(), $event->getTimezone(), $event->isAllDay()), $event->getId()));
             }
         }
 
-        $this->entityManager->flush();
+        if ($apply) {
+            $this->entityManager->flush();
+        }
         $this->venues = [];
 
         return $summary;
@@ -297,108 +409,204 @@ final class IcsImporter
         return ['name' => $name, 'address' => $parts ? implode(', ', $parts) : null, 'postcode' => $postcode, 'city' => '' !== $city ? $city : null];
     }
 
-    private function create(ParsedEvent $parsed, string $source): Event
+    /** @param array<string, mixed> $proposal */
+    private function create(ParsedEvent $parsed, string $source, array $proposal): Event
     {
         // The mapped class: App\Entity\Agenda\Event when the application took over.
         $class = $this->events->getClassName();
         /** @var Event $event */
         $event = new $class();
-        $event->setTitle($parsed->summary);
         $event->setSourceUid($parsed->uid);
         $event->setSource($source);
-        $this->applyMoment($event, $parsed);
-        $this->applyTexts($event, $parsed);
+        $event->setSourceUpdatedAt($parsed->lastModified);
+        $this->apply($event, $proposal);
         $event->setState(ThreadState::PUBLISH);
         $event->setPublishedAt(new \DateTime());
+        $this->pictures($event, $parsed);
 
         return $event;
     }
 
-    /** @return bool whether anything changed */
-    private function update(Event $event, ParsedEvent $parsed, string $source): bool
+    /**
+     * What the calendar gives a date, field by field: when, and whether it
+     * takes place, always (locked or not); the rest when the date is not
+     * locked, and only what the entry says - what it does not say stays as
+     * written on the site; a word with nothing after it ("Chef :") clears.
+     *
+     * @return array<string, mixed>
+     */
+    private function proposal(?Event $event, ParsedEvent $parsed): array
     {
-        $before = $this->fingerprint($event);
+        $proposal = ['startsAt' => $parsed->start, 'endsAt' => $parsed->end, 'allDay' => $parsed->allDay, 'timezone' => $parsed->timezone, 'cancelled' => $parsed->cancelled];
+        if ($event?->isSyncLocked()) {
+            return $proposal;
+        }
 
-        $event->setSource($source);
-        $this->applyMoment($event, $parsed);
-        if (!$event->isSyncLocked()) {
-            if ($event->getTitle() !== $parsed->summary) {
-                $event->setTitle($parsed->summary);
+        $proposal['title'] = $parsed->summary;
+        // The site's own page of the date (what its .ics gives as URL) is not the organiser's.
+        if ($parsed->url && !($event?->getSlug() && preg_match('#/agenda/'.preg_quote($event->getSlug(), '#').'/?$#', (string) parse_url($parsed->url, \PHP_URL_PATH)))) {
+            $proposal['eventUrl'] = $parsed->url;
+        }
+        if ($place = self::placeOf($parsed)) {
+            $proposal['venue'] = $place;
+        }
+        foreach (['ensemble' => 180, 'conductor' => 180] as $field => $length) {
+            if (null !== $parsed->{$field}) {
+                $proposal[$field] = self::text($parsed->{$field}, $length);
             }
-            $this->applyTexts($event, $parsed);
-        }
-
-        return $before !== $this->fingerprint($event);
-    }
-
-    /** What the calendar always owns on a date, locked or not: when, and whether it takes place. */
-    private function applyMoment(Event $event, ParsedEvent $parsed): void
-    {
-        $event->setStartsAt($parsed->start);
-        $event->setEndsAt($parsed->end);
-        $event->setAllDay($parsed->allDay);
-        $event->setTimezone($parsed->timezone);
-        $event->setCancelled($parsed->cancelled);
-        $event->setSourceUpdatedAt($parsed->lastModified);
-    }
-
-    /** What the calendar says of a date that is not locked: what it does not say stays. */
-    private function applyTexts(Event $event, ParsedEvent $parsed): void
-    {
-        if ($parsed->url) {
-            $event->setEventUrl($parsed->url);
-        }
-        if ($venue = $this->venue($parsed)) {
-            $event->setVenue($venue);
-        }
-        if (null !== $parsed->ensemble) {
-            $event->setEnsemble(mb_substr($parsed->ensemble, 0, 180));
-        }
-        if (null !== $parsed->conductor) {
-            $event->setConductor(mb_substr($parsed->conductor, 0, 180));
         }
         if (null !== $parsed->role) {
-            $event->setRole($parsed->role);
+            $proposal['role'] = Role::of($parsed->role)->value;
         }
         if (null !== $parsed->performers) {
-            $event->setPerformers(implode("\n", $parsed->performers));
+            $proposal['performers'] = self::text(implode("\n", $parsed->performers));
         }
         if (null !== $parsed->programme) {
-            $event->setProgramme(implode("\n", $parsed->programme));
+            $proposal['programme'] = self::text(implode("\n", $parsed->programme));
         }
         if (null !== $parsed->tickets) {
-            $event->setTicketsUrl(mb_substr($parsed->tickets, 0, 500));
+            $proposal['ticketsUrl'] = self::text($parsed->tickets, 500);
         }
-        $this->cover($event, $parsed->image);
+
+        return $proposal;
     }
 
-    private function fingerprint(Event $event): string
+    /**
+     * What a proposal changes on a date, as it reads: each field as it was
+     * and as it becomes (the hours on the hall's clock, the house by its
+     * name and town). A date not yet on the site: every field it gets.
+     *
+     * @param array<string, mixed> $proposal
+     *
+     * @return array<string, array{0: ?string, 1: ?string}>
+     */
+    private function diff(?Event $event, array $proposal): array
     {
-        return serialize([
-            $event->getTitle(), $event->getStartsAt()?->getTimestamp(), $event->getEndsAt()?->getTimestamp(),
-            $event->isAllDay(), $event->getTimezone(), $event->getEventUrl(), $event->isCancelled(), $event->getVenue()?->getLabel(),
-            $event->getEnsemble(), $event->getConductor(), $event->getRole(), $event->getPerformers(), $event->getProgramme(),
-            $event->getTicketsUrl(), $event->hasCover(),
-        ]);
+        $fields = [];
+        foreach ($proposal as $field => $value) {
+            $after = $this->shown($field, $value, $proposal['timezone'], $proposal['allDay']);
+            $before = $event ? $this->shown($field, match ($field) {
+                'startsAt' => $event->getStartsAt(),
+                'endsAt' => $event->getEndsAt(),
+                'allDay' => $event->isAllDay(),
+                'timezone' => $event->getTimezone(),
+                'cancelled' => $event->isCancelled(),
+                'title' => $event->getTitle(),
+                'eventUrl' => $event->getEventUrl(),
+                'venue' => $event->getVenue(),
+                'ensemble' => $event->getEnsemble(),
+                'conductor' => $event->getConductor(),
+                'role' => $event->getRole(),
+                'performers' => $event->getPerformers(),
+                'programme' => $event->getProgramme(),
+                'ticketsUrl' => $event->getTicketsUrl(),
+            }, $event->getTimezone(), $event->isAllDay()) : null;
+            if ($before !== $after && ($event || null !== $after)) {
+                $fields[$field] = [$before, $after];
+            }
+        }
+
+        return $fields;
     }
 
-    /** The hall of an entry: the one the source structures, else the one its LOCATION names. */
-    private function venue(ParsedEvent $parsed): ?Venue
+    /** A field's value as a person reads it: a moment on its hall's clock, yes or no, a house by its label. */
+    private function shown(string $field, mixed $value, string $timezone, bool $allDay): ?string
+    {
+        return match (true) {
+            null === $value => null,
+            $value instanceof \DateTimeInterface => self::clock($value, $timezone, $allDay),
+            \is_bool($value) => $value ? 'yes' : 'no',
+            $value instanceof Venue => $value->getLabel(),
+            'venue' === $field && \is_array($value) => ($this->findVenue($value) ?? new Venue($value['name'], $value['city'] ?? null))->getLabel(),
+            default => '' !== (string) $value ? (string) $value : null,
+        };
+    }
+
+    /** @param array<string, mixed> $proposal */
+    private function apply(Event $event, array $proposal): void
+    {
+        foreach ($proposal as $field => $value) {
+            match ($field) {
+                'startsAt' => $event->setStartsAt($value),
+                'endsAt' => $event->setEndsAt($value),
+                'allDay' => $event->setAllDay($value),
+                'timezone' => $event->setTimezone($value),
+                'cancelled' => $event->setCancelled($value),
+                'title' => $event->getTitle() !== $value ? $event->setTitle($value) : null,
+                'eventUrl' => $event->setEventUrl($value),
+                'venue' => $event->setVenue($this->venue($value)),
+                'ensemble' => $event->setEnsemble($value),
+                'conductor' => $event->setConductor($value),
+                'role' => $event->setRole($value),
+                'performers' => $event->setPerformers($value),
+                'programme' => $event->setProgramme($value),
+                'ticketsUrl' => $event->setTicketsUrl($value),
+            };
+        }
+    }
+
+    /** A moment as its hall's clock shows it: "2026-11-23 20:00", a day alone for a date of whole days. */
+    private static function clock(?\DateTimeInterface $at, string $timezone, bool $allDay): string
+    {
+        if (!$at) {
+            return '';
+        }
+        try {
+            $zone = new \DateTimeZone($timezone);
+        } catch (\Throwable) {
+            $zone = new \DateTimeZone('UTC');
+        }
+
+        return \DateTimeImmutable::createFromInterface($at)->setTimezone($zone)->format($allDay ? 'Y-m-d' : 'Y-m-d H:i');
+    }
+
+    /** A text cut to its column, empty as none. */
+    private static function text(string $text, ?int $length = null): ?string
+    {
+        $text = null !== $length ? mb_substr($text, 0, $length) : $text;
+
+        return '' !== trim($text) ? $text : null;
+    }
+
+    /**
+     * The hall of an entry: the one the source structures, else the one its
+     * LOCATION names; null when it names none.
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function placeOf(ParsedEvent $parsed): ?array
     {
         $place = $parsed->place;
         if (!$place && null !== $parsed->location && '' !== trim($parsed->location)) {
-            $place = self::splitLocation($parsed->location);
+            // The whole line kept: a house's name may hold a comma ("Elbphilharmonie, Great Hall").
+            $place = ['location' => trim($parsed->location)] + self::splitLocation($parsed->location);
         }
         if (!$place || '' === trim((string) ($place['name'] ?? ''))) {
             return null;
         }
-        $name = mb_substr(trim($place['name']), 0, 180);
-        $city = isset($place['city']) && '' !== trim((string) $place['city']) ? mb_substr(trim($place['city']), 0, 120) : null;
-        // One house under the spellings a calendar gives it ("Bogota", "Bogotá"), as the database's own comparison would have it.
-        $key = Venue::slugify($name, null).'|'.(null !== $city ? Venue::slugify($city, null) : '');
+        $place['name'] = mb_substr(trim($place['name']), 0, 180);
+        $place['city'] = isset($place['city']) && '' !== trim((string) $place['city']) ? mb_substr(trim($place['city']), 0, 120) : null;
 
-        return $this->venues[$key] ??= $this->venueRepository->findOneByNameAndCity($name, $city)
-            ?? $this->openVenue(['name' => $name, 'city' => $city] + $place);
+        return $place;
+    }
+
+    /**
+     * The house a place names, among the ones of this run and the database's;
+     * null: none yet. A LOCATION the site wrote itself (its .ics read back
+     * from a Google Calendar) is the full address of one of its houses.
+     */
+    private function findVenue(array $place): ?Venue
+    {
+        // One house under the spellings a calendar gives it ("Bogota", "Bogotá"), as the database's own comparison would have it.
+        return $this->venues[Venue::key($place['name'], $place['city'])]
+            ?? (isset($place['location']) ? $this->venueRepository->findOneByFullAddress($place['location']) : null)
+            ?? $this->venueRepository->findOneByNameAndCity($place['name'], $place['city']);
+    }
+
+    /** The house a place names, opened when there is none. */
+    private function venue(array $place): Venue
+    {
+        return $this->venues[Venue::key($place['name'], $place['city'])] ??= $this->findVenue($place) ?? $this->openVenue($place);
     }
 
     /** @param array{name: string, city: ?string, hall?: ?string, address?: ?string, postcode?: ?string, country?: ?string, latitude?: ?float, longitude?: ?float} $place */
@@ -416,18 +624,32 @@ final class IcsImporter
         return $venue;
     }
 
-    /** The source's picture as the cover of a date that has none; nothing when it cannot be had. */
-    private function cover(Event $event, ?string $image): void
+    /** The house's picture to a house that has none (with its credit), the date's own to a date that has none. */
+    private function pictures(Event $event, ParsedEvent $parsed): void
     {
-        if (null === $image || $event->hasCover() || !preg_match('#^https?://#i', $image)) {
-            return;
+        $venue = $event->getVenue();
+        $photo = $parsed->place['photo'] ?? null;
+        if (null !== $photo && $venue && !$venue->hasPhoto() && ($file = $this->download($photo))) {
+            $venue->setPhoto($file);
+            $venue->setPhotoCredit($venue->getPhotoCredit() ?? ($parsed->place['photoCredit'] ?? null));
+        }
+        if (null !== $parsed->image && !$event->hasCover() && ($file = $this->download($parsed->image))) {
+            $event->setCover($file);
+        }
+    }
+
+    /** A picture read from its address, as an upload; null when it cannot be had. */
+    private function download(string $image): ?File
+    {
+        if (!preg_match('#^https?://#i', $image)) {
+            return null;
         }
         try {
             $response = $this->http->request('GET', $image, ['timeout' => 20, 'max_duration' => 60]);
             $type = strtolower($response->getHeaders()['content-type'][0] ?? '');
             $content = $response->getContent();
             if ('' === $content || \strlen($content) > self::IMAGE_MAX_BYTES) {
-                return;
+                return null;
             }
             // A server that does not say what it sends (application/octet-stream
             // for a file without an extension): the picture says it itself.
@@ -435,7 +657,7 @@ final class IcsImporter
                 $type = strtolower((string) (new \finfo(\FILEINFO_MIME_TYPE))->buffer($content));
             }
             if (!str_starts_with($type, 'image/')) {
-                return;
+                return null;
             }
             $extension = match (true) {
                 str_contains($type, 'png') => 'png',
@@ -445,11 +667,12 @@ final class IcsImporter
             };
             $tmp = tempnam(sys_get_temp_dir(), 'agenda');
             if (false === $tmp || !rename($tmp, $tmp .= '.'.$extension) || false === file_put_contents($tmp, $content)) {
-                return;
+                return null;
             }
-            $event->setCover(new File($tmp));
+
+            return new File($tmp);
         } catch (\Throwable) {
-            // No picture: the date is read all the same.
+            return null; // No picture: the date is read all the same.
         }
     }
 

@@ -42,8 +42,18 @@ final class SquarespaceParserTest extends TestCase
         ], $event->programme);
         $this->assertNull($event->url, 'its sourceUrl is a place, not an address');
         $this->assertNull($event->role, 'the page does not say it');
-        $this->assertStringStartsWith('https://images.squarespace-cdn.com/', $event->image);
-        $this->assertStringEndsWith('?format=1500w', $event->image);
+        // Its picture is the hall's (one house, the same photographs date after date): the house's photo, not the date's.
+        $this->assertNull($event->image);
+        $this->assertStringStartsWith('https://images.squarespace-cdn.com/', $event->place['photo']);
+        $this->assertStringEndsWith('?format=1500w', $event->place['photo']);
+    }
+
+    public function testAnEndTypedADayLateIsTheSameEvening(): void
+    {
+        // Seoul: 20:00 to 22:00 typed as 20:00 to 22:00 the next day - a concert, not a night and a day on stage.
+        $seoul = $this->parse()['squarespace:6aa857b352d0432878b9aed6'];
+        $this->assertSame('2026-11-17T20:00:00+09:00', $seoul->start->format('c'));
+        $this->assertSame('2026-11-17T22:00:00+09:00', $seoul->end->format('c'));
     }
 
     public function testTheHourTypedOnBerlinsClockIsTheHallsHour(): void
@@ -77,6 +87,7 @@ final class SquarespaceParserTest extends TestCase
             'country' => 'DE',
             'latitude' => 54.1384187,
             'longitude' => 13.7653251,
+            'photo' => $event->place['photo'],
         ], $event->place);
 
         // No town apart: none made up; Squarespace's New York default is no position.

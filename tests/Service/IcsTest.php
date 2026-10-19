@@ -5,6 +5,7 @@ namespace Base\Agenda\Tests\Service;
 use Base\Agenda\Entity\Venue;
 use Base\Agenda\Enum\Role;
 use Base\Agenda\Service\Ics;
+use Base\Agenda\Service\IcsImporter;
 use Base\Agenda\Service\IcsParser;
 use Base\Agenda\Tests\Fixtures\TestEvent;
 use PHPUnit\Framework\TestCase;
@@ -96,6 +97,33 @@ final class IcsTest extends TestCase
         $this->assertTrue($events[1]->allDay);
         $this->assertTrue($events[1]->cancelled);
         $this->assertSame('2027-07-07', $events[1]->end->format('Y-m-d'));
+    }
+
+    public function testEveryPieceComesBackWhereItWas(): void
+    {
+        // The site's .ics imported into a Google Calendar, then that calendar read: nothing moves.
+        [$read] = (new IcsParser('UTC'))->parse((new Ics())->calendar([$this->concert()]));
+        $read = IcsImporter::described($read);
+
+        $this->assertSame('NDR Elbphilharmonie Orchester', $read->ensemble);
+        $this->assertSame('Alan Gilbert', $read->conductor);
+        $this->assertSame('soloist', $read->role);
+        $this->assertSame(['Anna Meyer — harp'], $read->performers);
+        $this->assertSame('https://www.elbphilharmonie.de/en/whats-on/perspectives', $read->tickets);
+        $this->assertSame([
+            'Glière — Harp Concerto op. 74',
+            'Debussy — Danses sacrée et profane; for harp and strings',
+            'Ravel — Introduction et allegro, for harp, flute, clarinet and string quartet',
+        ], $read->programme);
+    }
+
+    public function testADateWithOnlyItsProgrammeSaysSo(): void
+    {
+        $event = TestEvent::at('2026-12-01 18:30');
+        $event->setProgramme("Bach — Suite\nRavel — Sonatine");
+
+        $this->assertSame("Programme:\nBach — Suite\nRavel — Sonatine", $event->getDescriptionText());
+        $this->assertSame('', TestEvent::at('2026-12-01 18:30')->getDescriptionText());
     }
 
     public function testADateWithNoEndLastsTwoHoursAndUtcStaysUtc(): void

@@ -4,6 +4,7 @@ namespace Base\Agenda\Controller\Client;
 
 use Base\Agenda\Entity\Event;
 use Base\Agenda\Repository\EventRepository;
+use Base\Agenda\Repository\VenueRepository;
 use Base\Agenda\Service\Feed;
 use Base\Agenda\Service\Ics;
 use Base\Agenda\Service\JsonLd;
@@ -34,6 +35,7 @@ class AgendaController extends AbstractController
         private readonly Ics $ics,
         private readonly JsonLd $jsonLd,
         private readonly Feed $feed,
+        private readonly VenueRepository $venues,
         private readonly ?SettingBagInterface $settings = null,
         #[Autowire('%agenda.past_per_page%')] private readonly int $pastPerPage = 24,
         #[Autowire('%agenda.show_past%')] private readonly bool $showPast = true,
@@ -122,10 +124,24 @@ class AgendaController extends AbstractController
     public function cover(Request $request, string $slug): Response
     {
         $event = $this->find($slug);
-        $file = $event->hasCover() ? $event->getCoverFile() : null;
+
+        return $this->picture($request, $event->hasCover() ? $event->getCoverFile() : null, sprintf('No cover for "%s".', $slug));
+    }
+
+    /** A house's photo, said to be the picture it is: the address the feed gives (Service\Feed::photo). */
+    #[Route('/agenda/venue/{slug}/photo', name: 'agenda_venue_photo', requirements: ['slug' => '[a-z0-9\-]+'], methods: ['GET', 'HEAD'])]
+    public function photo(Request $request, string $slug): Response
+    {
+        $venue = $this->venues->findOneBy(['slug' => $slug]);
+
+        return $this->picture($request, $venue?->hasPhoto() ? $venue->getPhotoFile() : null, sprintf('No photo for "%s".', $slug));
+    }
+
+    private function picture(Request $request, ?File $file, string $missing): Response
+    {
         $type = $file instanceof File && $file->isFile() ? (string) $file->getMimeType() : '';
         if (!str_starts_with($type, 'image/')) {
-            throw $this->createNotFoundException(sprintf('No cover for "%s".', $slug));
+            throw $this->createNotFoundException($missing);
         }
         $response = new BinaryFileResponse($file, Response::HTTP_OK, [
             'Content-Type' => $type,
@@ -149,7 +165,7 @@ class AgendaController extends AbstractController
             $jsonLd = $this->jsonLd->for(
                 $event,
                 $this->generateUrl('agenda_event', ['slug' => $slug], UrlGeneratorInterface::ABSOLUTE_URL),
-                $this->feed->cover($event),
+                $this->feed->picture($event),
                 $this->siteTitle(),
             );
         }

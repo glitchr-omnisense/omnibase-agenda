@@ -72,7 +72,8 @@ final class Feed
             'programme' => $event->getProgrammeLines(),
             'tickets' => $event->getTicketsUrl(),
             'eventUrl' => $event->getEventUrl(),
-            'image' => $this->cover($event),
+            'image' => $this->picture($event),
+            'imageCredit' => $event->getPictureCredit(),
             'venue' => $this->venue($event->getVenue()),
             'updatedAt' => $event->getUpdatedAt() ? \DateTimeImmutable::createFromInterface($event->getUpdatedAt())->setTimezone(new \DateTimeZone('UTC'))->format(\DATE_ATOM) : null,
         ];
@@ -91,6 +92,8 @@ final class Feed
             'latitude' => $venue->getLatitude(),
             'longitude' => $venue->getLongitude(),
             'map' => $venue->getMapLink(),
+            'photo' => $this->photo($venue),
+            'photoCredit' => $venue->getPhotoCredit(),
         ] : null;
     }
 
@@ -115,6 +118,27 @@ final class Feed
         $slug = $event->getSlug();
 
         return ($slug ? $this->url('agenda_event_cover', ['slug' => $slug]) : null) ?? $this->absolute($path);
+    }
+
+    /** The picture a date shows, for whoever reads it from elsewhere: its cover, else its house's photo. */
+    public function picture(Event $event): ?string
+    {
+        return $this->cover($event) ?? ($event->getVenue() ? $this->photo($event->getVenue()) : null);
+    }
+
+    /** A house's photo for whoever reads it from elsewhere: /agenda/venue/{slug}/photo, which says its type (see cover()). */
+    public function photo(Venue $venue): ?string
+    {
+        if (!$venue->hasPhoto()) {
+            return null;
+        }
+        $path = $venue->getPhotoUrl();
+        if (\is_string($path) && preg_match('#^(?:https?:)?//#i', $path)) {
+            return $path;
+        }
+        $slug = $venue->getSlug();
+
+        return ($slug ? $this->url('agenda_venue_photo', ['slug' => $slug]) : null) ?? $this->absolute($path);
     }
 
     /** A path of the site made absolute on the address the request came to; an address stays as it is. */

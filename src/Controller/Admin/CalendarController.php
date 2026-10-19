@@ -15,10 +15,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The Google Calendar the dates are kept in, in the back office (Agenda ›
  * Google Calendar): its secret address pasted once (the `agenda.ics`
- * setting), the last sync and a button to sync now, and the how-to - how
- * to make the calendar, how to write a date in it so the site files each
- * line where it goes. The artist keeps her dates from her phone and never
- * comes here again.
+ * setting), the last sync, the calendar read now and what it would change
+ * shown before it is applied, the dates gone from their calendar waiting
+ * for a word (cancelled, or kept), the syncs that changed something, and
+ * the how-to - how to make the calendar, how to bring the site's dates
+ * into it, how to write a date so the site files each line where it goes.
+ * The artist keeps her dates from her phone and comes here when she likes.
  */
 #[IsGranted('ROLE_ADMIN')]
 class CalendarController extends AbstractController
@@ -31,19 +33,25 @@ class CalendarController extends AbstractController
     ) {
     }
 
+    /** The page; ?preview=1 reads the calendars now and shows what they would change, writing nothing. */
     #[Route('/admin/agenda/calendar', name: 'agenda_admin_calendar', methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $address = $this->importer->getAddress();
         $typed = $address ? array_map('trim', explode(',', $address)) : [];
         // The other calendars, set in the configuration: shown, not edited here.
         $configured = array_values(array_diff($this->importer->getSources(), $typed));
+        $preview = $request->query->getBoolean('preview') && $this->importer->hasSources() ? $this->importer->sync(null, false) : null;
 
         return $this->page('@Agenda/admin/calendar.html.twig', [
             'address' => $address ? implode(', ', array_map([IcsImporter::class, 'display'], $typed)) : null,
             'configured' => array_map([IcsImporter::class, 'display'], $configured),
             'has_sources' => $this->importer->hasSources(),
             'last' => $this->importer->lastSync(),
+            'preview' => $preview,
+            'missing' => $this->importer->missing(),
+            'history' => $this->importer->history(),
+            'feed_url' => $this->feedUrl(),
         ]);
     }
 
@@ -65,7 +73,7 @@ class CalendarController extends AbstractController
         return $this->redirectToRoute('agenda_admin_calendar');
     }
 
-    /** Every calendar read now, as agenda:sync does every half hour. */
+    /** Every calendar read now and applied, as agenda:sync does every half hour: the preview's "Apply". */
     #[Route('/admin/agenda/calendar/sync', name: 'agenda_admin_calendar_sync', methods: ['POST'])]
     public function sync(Request $request): Response
     {
@@ -84,6 +92,29 @@ class CalendarController extends AbstractController
         $this->addFlash('success', $this->translator->trans('admin.event.flash.synced', $summary->toArray(), 'agenda'));
 
         return $this->redirectToRoute('agenda_admin_calendar');
+    }
+
+    /** The word on the dates gone from their calendar: cancelled, or kept on the site. */
+    #[Route('/admin/agenda/calendar/missing', name: 'agenda_admin_calendar_missing', methods: ['POST'])]
+    public function missing(Request $request): Response
+    {
+        $this->assertToken($request, 'agenda-missing');
+        $ids = array_map('intval', $request->request->all('ids'));
+        $cancel = 'cancel' === $request->request->getString('decision');
+        $settled = $ids ? $this->importer->resolveMissing($ids, $cancel) : 0;
+        $this->addFlash($settled ? 'success' : 'warning', $this->translator->trans($cancel ? 'admin.calendar.missing.flash.cancelled' : 'admin.calendar.missing.flash.kept', ['count' => $settled], 'agenda'));
+
+        return $this->redirectToRoute('agenda_admin_calendar');
+    }
+
+    /** The site's own calendar, to import into Google Calendar before its address is pasted here: null when the host has not that route. */
+    private function feedUrl(): ?string
+    {
+        try {
+            return $this->generateUrl('agenda_feed');
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /** A page in the back office's chrome: its menus built when no CRUD did. */

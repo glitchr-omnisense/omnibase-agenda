@@ -183,20 +183,22 @@ class Event extends Thread implements LinkableInterface
     /** Whether a picture is set, without asking the storage where it is. */
     public function hasCover(): bool { return null !== $this->cover && '' !== $this->cover; }
 
-    /**
-     * The cover's address on the site ("/uploads/…"), what an <img> takes:
-     * the storage gives its public path from the server's root
-     * ("/srv/app/public/uploads/…"), the public directory is taken off.
-     */
+    /** The cover's address on the site ("/uploads/…"), what an <img> takes (Venue::publicPath()). */
     public function getCoverUrl(): ?string
     {
-        $path = $this->hasCover() ? $this->getCover() : null;
-        if (!\is_string($path) || '' === $path || preg_match('#^(?:https?:)?//#i', $path)) {
-            return $path ?: null;
-        }
-        $public = strpos($path, '/public/');
+        return $this->hasCover() ? Venue::publicPath($this->getCover()) : null;
+    }
 
-        return false !== $public ? substr($path, $public + \strlen('/public')) : $path;
+    /** The picture the date shows: its own cover, else its house's photo. */
+    public function getPictureUrl(): ?string
+    {
+        return $this->getCoverUrl() ?? $this->venue?->getPhotoUrl();
+    }
+
+    /** Who took that picture, when it is the house's (a date's own cover names nobody). */
+    public function getPictureCredit(): ?string
+    {
+        return $this->hasCover() ? null : $this->venue?->getPhotoCredit();
     }
 
     public function getSourceUid(): ?string { return $this->sourceUid; }
@@ -339,12 +341,19 @@ class Event extends Thread implements LinkableInterface
      */
     public function getDescriptionText(): string
     {
-        return implode("\n\n", array_filter([
-            implode(' · ', array_filter([$this->ensemble, $this->conductor])),
-            implode("\n", $this->getProgrammeLines()),
-            implode("\n", $this->getPerformerLines()),
-            $this->ticketsUrl,
-        ], fn (?string $part) => null !== $part && '' !== $part));
+        // In the words Service\DescriptionParser reads, so the date read back from a calendar it was
+        // put in (the site's .ics imported into Google Calendar) keeps each piece where it was.
+        $performers = $this->getPerformerLines();
+        $programme = $this->getProgrammeLines();
+
+        return implode("\n", array_filter([
+            $this->ensemble ? 'Orchestra: '.$this->ensemble : null,
+            $this->conductor ? 'Conductor: '.$this->conductor : null,
+            Role::OTHER !== $this->getRoleEnum() ? 'Role: '.$this->role : null,
+            $performers ? "With:\n".implode("\n", $performers)."\n" : null,
+            $this->ticketsUrl ? 'Tickets: '.$this->ticketsUrl : null,
+            $programme ? "Programme:\n".implode("\n", $programme) : null,
+        ]));
     }
 
     /**

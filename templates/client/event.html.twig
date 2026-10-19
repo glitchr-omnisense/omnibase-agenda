@@ -1,4 +1,4 @@
-{# One date: its cover, when (in the hall's timezone), where, with whom, the programme, the tickets, the calendar links - and the schema.org MusicEvent for the search engines. #}
+{# One date: its picture (its cover, else its house's photo), when (in the hall's timezone), where, with whom, the programme, the tickets, the calendar links - and the schema.org MusicEvent for the search engines. #}
 {% extends 'layout1.html.twig' %}
 
 {% set start = event.startsAtLocal %}
@@ -19,7 +19,8 @@
         {% if event.cancelled %}<p class="agenda-notice" role="status">{{ '@agenda.event.cancelled_notice'|trans }}</p>{% endif %}
     </header>
 
-    {% if event.coverUrl %}<figure class="agenda-cover"><img src="{{ event.coverUrl }}" alt=""></figure>{% endif %}
+    {# Its own cover, else its house's photo - and then who took it. #}
+    {% if event.pictureUrl %}<figure class="agenda-cover"><img src="{{ event.pictureUrl }}" alt="">{% if event.pictureCredit %}<figcaption>{{ '@agenda.event.photo_credit'|trans({credit: event.pictureCredit}) }}</figcaption>{% endif %}</figure>{% endif %}
 
     <dl class="agenda-facts">
         <div>

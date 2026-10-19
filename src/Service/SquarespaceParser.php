@@ -131,10 +131,22 @@ final class SquarespaceParser
         $endMs = $item['endDate'] ?? $item['structuredContent']['endDate'] ?? null;
         $start = self::wallClock((int) $startMs, $timezone);
         $end = is_numeric($endMs) ? self::wallClock((int) $endMs, $timezone) : null;
+        // A few ends were typed a day late (18:30 to 20:30 the next evening): one evening, not a night on stage.
+        if ($end && $end > $start->modify('+24 hours') && $end <= $start->modify('+30 hours')) {
+            $end = $end->modify('-1 day');
+        }
         $body = self::body((string) ($item['body'] ?? ''));
         $source = trim((string) ($item['sourceUrl'] ?? ''));
         $image = trim((string) ($item['assetUrl'] ?? ''));
         $isImage = '' !== $image && str_starts_with((string) ($item['contentType'] ?? 'image/'), 'image/');
+        // Squarespace's CDN gives any width: one a page needs, not the original.
+        $image = $isImage ? (str_contains($image, 'squarespace-cdn.com') && !str_contains($image, '?') ? $image.'?format=1500w' : $image) : null;
+        // The picture of a date there is the hall's, mostly (one house, the same photographs date after
+        // date): the house's photo when it has none; the date's own only when it names no house.
+        $place = self::place($location, $country);
+        if ($place && null !== $image) {
+            $place['photo'] = $image;
+        }
 
         return new ParsedEvent(
             uid: 'squarespace:'.$id,
@@ -149,9 +161,8 @@ final class SquarespaceParser
             conductor: $body['conductor'],
             performers: $body['performers'] ?: null,
             programme: $body['programme'] ?: null,
-            // Squarespace's CDN gives any width: one a page needs, not the original.
-            image: $isImage ? (str_contains($image, 'squarespace-cdn.com') && !str_contains($image, '?') ? $image.'?format=1500w' : $image) : null,
-            place: self::place($location, $country),
+            image: $place ? null : $image,
+            place: $place,
         );
     }
 

@@ -8,6 +8,7 @@ use Base\Agenda\Service\Feed;
 use Base\Agenda\Service\FeedParser;
 use Base\Agenda\Service\Ics;
 use Base\Agenda\Tests\Fixtures\TestEvent;
+use Base\Agenda\Tests\Fixtures\TestVenue;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RequestContext;
@@ -47,12 +48,12 @@ final class FeedTest extends TestCase
         $this->assertSame(['Anna Meyer, harp'], $data['performers']);
         $this->assertSame('https://www.elbphilharmonie.de/tickets', $data['tickets']);
         $this->assertNull($data['image']);
-        $this->assertSame(['name', 'hall', 'address', 'postcode', 'city', 'country', 'latitude', 'longitude', 'map'], array_keys($data['venue']));
+        $this->assertSame(['name', 'hall', 'address', 'postcode', 'city', 'country', 'latitude', 'longitude', 'map', 'photo', 'photoCredit'], array_keys($data['venue']));
         $this->assertSame('Großer Saal', $data['venue']['hall']);
         $this->assertSame('2026-10-01T12:00:00+00:00', $data['updatedAt']);
         $this->assertSame([
             'id', 'slug', 'url', 'ics', 'title', 'start', 'end', 'timezone', 'allDay', 'cancelled', 'role', 'roleLabel', 'ensemble',
-            'conductor', 'performers', 'programme', 'tickets', 'eventUrl', 'image', 'venue', 'updatedAt',
+            'conductor', 'performers', 'programme', 'tickets', 'eventUrl', 'image', 'imageCredit', 'venue', 'updatedAt',
         ], array_keys($data));
     }
 
@@ -75,6 +76,42 @@ final class FeedTest extends TestCase
         // No router (a host without the route): the file's address, absolute at best.
         $event->testCoverUrl = '/uploads/a';
         $this->assertSame('/uploads/a', (new Feed(new Ics()))->cover($event));
+    }
+
+    public function testADateWithoutACoverShowsItsHousesPhotoAndItsCredit(): void
+    {
+        $urls = $this->createStub(UrlGeneratorInterface::class);
+        $urls->method('generate')->willReturnCallback(fn (string $route, array $parameters = []) => 'https://anna.example/'.$route.'/'.implode('/', $parameters));
+        $urls->method('getContext')->willReturn(new RequestContext('', 'GET', 'anna.example', 'https'));
+        $feed = new Feed(new Ics(), $urls);
+
+        $hall = new TestVenue('Elbphilharmonie', 'Hamburg', 'elbphilharmonie-hamburg');
+        $hall->testPhotoUrl = '/uploads/_/venue/_photo/0b2f';
+        $hall->setPhotoCredit('Peter Kaminski');
+        $event = $this->concert();
+        $event->setVenue($hall);
+
+        $data = $feed->event($event);
+        $this->assertSame('https://anna.example/agenda_venue_photo/elbphilharmonie-hamburg', $data['venue']['photo']);
+        $this->assertSame('Peter Kaminski', $data['venue']['photoCredit']);
+        $this->assertSame($data['venue']['photo'], $data['image'], 'the house\'s photo, as the page shows it');
+        $this->assertSame('Peter Kaminski', $data['imageCredit']);
+        $this->assertSame('/uploads/_/venue/_photo/0b2f', $event->getPictureUrl());
+
+        // Its own cover first, which names nobody.
+        $event->testCoverUrl = '/uploads/_/event/_cover/611f';
+        $data = $feed->event($event);
+        $this->assertSame('https://anna.example/agenda_event_cover/a-concert', $data['image']);
+        $this->assertNull($data['imageCredit']);
+
+        // Read by another site: the house's photo for its house, the date's cover for the date - not the photo twice.
+        [$read] = (new FeedParser())->parse(['calendar' => ['name' => 'Anna'], 'events' => [$feed->event($event)], 'next' => null]);
+        $this->assertSame('https://anna.example/agenda_venue_photo/elbphilharmonie-hamburg', $read->place['photo']);
+        $this->assertSame('Peter Kaminski', $read->place['photoCredit']);
+        $this->assertSame('https://anna.example/agenda_event_cover/a-concert', $read->image);
+        $event->testCoverUrl = null;
+        [$read] = (new FeedParser())->parse(['calendar' => ['name' => 'Anna'], 'events' => [$feed->event($event)], 'next' => null]);
+        $this->assertNull($read->image);
     }
 
     public function testTheDocument(): void

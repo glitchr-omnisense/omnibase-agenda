@@ -12,6 +12,7 @@ index:
   older: "Plus anciennes"
 
 event:
+  photo_credit: "Photo : {credit}"
   back: "L'agenda"
   when: "Quand"
   where: "Où"
@@ -83,7 +84,7 @@ admin:
     flash:
       duplicated: "Date dupliquée, en brouillon : réglez son jour."
       no_source: "Aucun calendrier à lire : collez son adresse dans Agenda › Google Agenda."
-      synced: "Calendriers lus : {created} nouvelles, {updated} mises à jour, {cancelled} annulées."
+      synced: "Calendriers lus : {created} nouvelles, {updated} mises à jour, {cancelled} annulées, {missing} disparues de leur agenda (en attente sur la page de l'agenda)."
   calendar:
     title: "Google Agenda"
     lead: "Les dates tenues dans un Google Agenda, depuis un téléphone : le site le lit toutes les 30 minutes. Personne n'a besoin de se connecter ici pour ajouter un concert."
@@ -104,12 +105,15 @@ admin:
       cancelled: "annulées"
       unchanged: "inchangées"
       never: "Pas encore lu"
-      help: "L'agenda est lu toutes les 30 minutes. Pour voir un changement tout de suite, synchronisez maintenant."
-      now: "Synchroniser maintenant"
+      help: "L'agenda est lu et appliqué toutes les 30 minutes. Pour voir un changement tout de suite, lisez-le maintenant : ce qu'il changerait est montré d'abord, et appliqué seulement quand vous le dites."
+      now: "Lire l'agenda maintenant"
+      missing: "disparues, en attente"
     howto:
       title: "Mode d'emploi"
       create: "Dans Google Agenda (sur un ordinateur, calendar.google.com), créez un agenda réservé aux concerts : « Autres agendas » › « + » › « Créer un agenda », nommé « Concerts »."
       share: "Si l'agence tient aussi les dates : « Paramètres et partage » de l'agenda › « Partager avec des personnes en particulier » › son adresse, avec « Modifier les événements »."
+      import: "Des dates déjà sur le site ? Faites-les d'abord entrer dans le nouvel agenda, pour que rien ne soit en double : téléchargez l'agenda du site, puis dans Google Agenda « Paramètres » › « Importer et exporter » › « Importer » dans « Concerts ». Chaque date garde son identité : le site la reconnaît quand il la relit."
+      import_link: "Télécharger l'agenda du site (.ics)"
       secret: "Dans les mêmes paramètres, « Intégrer l'agenda » › « Adresse secrète au format iCal » : copiez-la."
       paste: "Collez-la ci-dessus et enregistrez. C'est tout : désormais les concerts s'écrivent dans Google Agenda, sur le téléphone ou l'ordinateur."
       write: "Un concert est un événement de cet agenda : le titre est le nom du concert, le lieu la salle et son adresse, les horaires ceux du concert, et la description une information par ligne - par exemple :"
@@ -142,8 +146,35 @@ admin:
     after:
       title: "Ensuite"
       edit: "Un changement dans l'agenda est sur le site en moins de 30 minutes."
-      delete: "Un concert supprimé de l'agenda reste sur le site, marqué « annulé » : qui avait un billet le retrouve."
+      delete: "Un concert supprimé de l'agenda n'est pas annulé tout seul : il attend sur cette page que vous disiez s'il est annulé (barré sur le site, qui avait un billet le retrouve) ou gardé."
       lock: "Une date dont les textes ont été réécrits sur le site les garde si « Garder les textes du site » est coché sur elle (Agenda › Concerts) : l'agenda ne fait alors que déplacer ses horaires et l'annuler."
+    preview:
+      title: "Ce que l'agenda changerait"
+      nothing: "Rien à changer : le site dit déjà ce que dit l'agenda ({count, plural, one {# date lue} other {# dates lues}})."
+      lead: "Lu à l'instant, rien d'appliqué encore : {created} nouvelles, {updated} mises à jour, {cancelled} annulées, {missing} disparues de l'agenda."
+      apply: "Appliquer ces changements"
+      cancel: "Laisser"
+      help: "L'agenda est relu au moment d'appliquer : un changement fait entre-temps est pris aussi. Une date disparue de l'agenda n'est pas annulée : elle attend plus bas votre décision."
+    missing:
+      title: "Disparues de l'agenda"
+      lead: "{count, plural, one {Cette date n'est plus dans son agenda.} other {Ces # dates ne sont plus dans leur agenda.}} Supprimées exprès, ou d'un geste malheureux ?"
+      cancel: "Marquer annulées"
+      keep: "Garder sur le site"
+      help: "Annulée : barrée sur le site, qui avait un billet la retrouve. Gardée : la date reste telle quelle et devient celle du site — plus aucun agenda ne la redemande."
+      flash:
+        cancelled: "{count, plural, =0 {Aucune date annulée.} one {# date marquée annulée.} other {# dates marquées annulées.}}"
+        kept: "{count, plural, =0 {Aucune date gardée.} one {# date gardée sur le site.} other {# dates gardées sur le site.}}"
+    history:
+      title: "Derniers changements"
+      counts: "{created} nouvelles, {updated} mises à jour, {cancelled} annulées, {missing} disparues"
+      more: "et {count} de plus"
+    changes:
+      created: "Nouvelle"
+      updated: "Mise à jour"
+      cancelled: "Annulée"
+      missing: "Disparue"
+      "yes": "oui"
+      "no": "non"
     flash:
       saved: "Adresse enregistrée : l'agenda est lu à la prochaine synchronisation."
       forgotten: "Adresse oubliée : cet agenda n'est plus lu."
@@ -162,6 +193,25 @@ admin:
     latitude: "Latitude"
     longitude: "Longitude"
     slug: "Slug"
+    photo: "Photo"
+    photo_help: "Montrée sur chaque date ici qui n'a pas d'image à elle."
+    photo_credit: "Crédit photo"
+    photo_credit_help: "Qui l'a prise : écrit sous l'image (« Peter Kaminski »). La photo d'un photographe demande son accord et son nom."
+    aliases: "Aussi écrit"
+    action:
+      merge: "Fusionner avec…"
+    merge:
+      title: "Fusionner {venue}"
+      lead: "{count, plural, =0 {Aucune date ici.} one {Sa date va au lieu choisi.} other {Ses # dates vont au lieu choisi.}}"
+      into: "Le même lieu que"
+      likely: "sans doute le même"
+      dates: "{count, plural, =0 {aucune date} one {# date} other {# dates}}"
+      help: "Le lieu choisi garde son nom et prend à celui-ci ce qui lui manque (adresse, carte, photo) ; « {venue} » est supprimé, et un agenda qui l'écrit encore trouve le lieu choisi."
+      submit: "Fusionner"
+      none: "Aucun autre lieu avec lequel le fusionner."
+      choose: "Choisissez le lieu avec lequel le fusionner."
+    flash:
+      merged: "{from} fusionné avec {into} : {count, plural, =0 {aucune date déplacée} one {# date déplacée} other {# dates déplacées}}."
   widget:
     upcoming: "{count, plural, =0 {date à venir} one {date à venir} other {dates à venir}}"
     none: "Aucune date à venir."

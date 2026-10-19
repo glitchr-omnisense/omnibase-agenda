@@ -12,6 +12,7 @@ index:
   older: "Ältere"
 
 event:
+  photo_credit: "Foto: {credit}"
   back: "Alle Termine"
   when: "Wann"
   where: "Wo"
@@ -83,7 +84,7 @@ admin:
     flash:
       duplicated: "Termin dupliziert, als Entwurf: Datum anpassen."
       no_source: "Kein Kalender zum Einlesen: seine Adresse unter Termine › Google Kalender einfügen."
-      synced: "Kalender eingelesen: {created} neu, {updated} aktualisiert, {cancelled} abgesagt."
+      synced: "Kalender eingelesen: {created} neu, {updated} aktualisiert, {cancelled} abgesagt, {missing} aus ihrem Kalender verschwunden (warten auf der Kalenderseite)."
   calendar:
     title: "Google Kalender"
     lead: "Die Termine, in einem Google Kalender gepflegt, vom Handy aus: die Website liest ihn alle 30 Minuten. Um ein Konzert einzutragen, muss sich niemand hier anmelden."
@@ -104,12 +105,15 @@ admin:
       cancelled: "abgesagt"
       unchanged: "unverändert"
       never: "Noch nicht gelesen"
-      help: "Der Kalender wird alle 30 Minuten gelesen. Um eine Änderung sofort zu sehen: jetzt synchronisieren."
-      now: "Jetzt synchronisieren"
+      help: "Der Kalender wird alle 30 Minuten gelesen und übernommen. Um eine Änderung sofort zu sehen, jetzt lesen: was er ändern würde, wird zuerst gezeigt und erst übernommen, wenn Sie es sagen."
+      now: "Kalender jetzt lesen"
+      missing: "verschwunden, wartend"
     howto:
       title: "So geht's"
       create: "In Google Kalender (am Computer, calendar.google.com) einen eigenen Kalender nur für die Konzerte anlegen: „Weitere Kalender“ › „+“ › „Neuen Kalender erstellen“, Name „Konzerte“."
       share: "Pflegt die Agentur die Termine mit: „Einstellungen und Freigabe“ des Kalenders › „Für bestimmte Personen freigeben“ › ihre Adresse, mit „Änderungen an Terminen vornehmen“."
+      import: "Schon Termine auf der Website? Bringen Sie sie zuerst in den neuen Kalender, damit nichts doppelt ist: den Kalender der Website herunterladen, dann in Google Kalender „Einstellungen“ › „Importieren & exportieren“ › „Importieren“ in „Konzerte“. Jeder Termin behält seine Identität: die Website erkennt ihn beim Zurücklesen."
+      import_link: "Kalender der Website herunterladen (.ics)"
       secret: "In denselben Einstellungen „Kalender integrieren“ › „Privatadresse im iCal-Format“: kopieren."
       paste: "Oben einfügen und speichern. Das ist alles: ab jetzt werden die Konzerte in Google Kalender eingetragen, am Handy oder am Computer."
       write: "Ein Konzert ist ein Termin dieses Kalenders: der Titel ist der Name des Konzerts, der Ort der Saal mit Adresse, die Zeiten die des Konzerts, und die Beschreibung eine Angabe pro Zeile - zum Beispiel:"
@@ -142,8 +146,35 @@ admin:
     after:
       title: "Danach"
       edit: "Eine Änderung im Kalender ist innerhalb von 30 Minuten auf der Website."
-      delete: "Ein aus dem Kalender gelöschtes Konzert bleibt auf der Website, als „abgesagt“ markiert: wer eine Karte hat, findet es wieder."
+      delete: "Ein aus dem Kalender gelöschtes Konzert wird nicht von selbst abgesagt: es wartet auf dieser Seite, bis Sie sagen, ob es abgesagt (auf der Website durchgestrichen, wer eine Karte hat, findet es) oder behalten wird."
       lock: "Ein Termin, dessen Texte auf der Website neu geschrieben wurden, behält sie, wenn „Texte der Website behalten“ bei ihm angehakt ist (Termine › Konzerte): der Kalender verschiebt dann nur seine Zeiten und sagt ihn ab."
+    preview:
+      title: "Was der Kalender ändern würde"
+      nothing: "Nichts zu ändern: die Website sagt schon, was der Kalender sagt ({count, plural, one {# Termin gelesen} other {# Termine gelesen}})."
+      lead: "Soeben gelesen, noch nichts übernommen: {created} neu, {updated} aktualisiert, {cancelled} abgesagt, {missing} aus dem Kalender verschwunden."
+      apply: "Diese Änderungen übernehmen"
+      cancel: "Lassen"
+      help: "Beim Übernehmen wird der Kalender erneut gelesen: eine inzwischen gemachte Änderung wird mitgenommen. Ein aus dem Kalender verschwundener Termin wird nicht abgesagt: er wartet unten auf Ihre Entscheidung."
+    missing:
+      title: "Aus dem Kalender verschwunden"
+      lead: "{count, plural, one {Dieser Termin ist nicht mehr in seinem Kalender.} other {Diese # Termine sind nicht mehr in ihrem Kalender.}} Absichtlich gelöscht oder aus Versehen?"
+      cancel: "Als abgesagt markieren"
+      keep: "Auf der Website behalten"
+      help: "Abgesagt: auf der Website durchgestrichen, wer eine Karte hat, findet ihn. Behalten: der Termin bleibt, wie er ist, und gehört nun der Website — kein Kalender fragt mehr nach ihm."
+      flash:
+        cancelled: "{count, plural, =0 {Kein Termin abgesagt.} one {# Termin als abgesagt markiert.} other {# Termine als abgesagt markiert.}}"
+        kept: "{count, plural, =0 {Kein Termin behalten.} one {# Termin auf der Website behalten.} other {# Termine auf der Website behalten.}}"
+    history:
+      title: "Letzte Änderungen"
+      counts: "{created} neu, {updated} aktualisiert, {cancelled} abgesagt, {missing} verschwunden"
+      more: "und {count} weitere"
+    changes:
+      created: "Neu"
+      updated: "Aktualisiert"
+      cancelled: "Abgesagt"
+      missing: "Verschwunden"
+      "yes": "ja"
+      "no": "nein"
     flash:
       saved: "Adresse gespeichert: der Kalender wird bei der nächsten Synchronisierung gelesen."
       forgotten: "Adresse vergessen: dieser Kalender wird nicht mehr gelesen."
@@ -162,6 +193,25 @@ admin:
     latitude: "Breitengrad"
     longitude: "Längengrad"
     slug: "Slug"
+    photo: "Foto"
+    photo_help: "Auf jedem Termin hier gezeigt, der kein eigenes Bild hat."
+    photo_credit: "Bildnachweis"
+    photo_credit_help: "Wer es aufgenommen hat: unter dem Bild genannt („Peter Kaminski“). Das Bild eines Fotografen braucht seine Zustimmung und seinen Namen."
+    aliases: "Auch geschrieben"
+    action:
+      merge: "Zusammenführen mit…"
+    merge:
+      title: "{venue} zusammenführen"
+      lead: "{count, plural, =0 {Kein Termin hier.} one {Sein Termin geht an den gewählten Ort.} other {Seine # Termine gehen an den gewählten Ort.}}"
+      into: "Derselbe Ort wie"
+      likely: "wohl derselbe"
+      dates: "{count, plural, =0 {kein Termin} one {# Termin} other {# Termine}}"
+      help: "Der gewählte Ort behält seinen Namen und übernimmt von diesem, was ihm fehlt (Adresse, Karte, Foto); „{venue}“ wird gelöscht, und ein Kalender, der ihn noch so schreibt, findet den gewählten Ort."
+      submit: "Zusammenführen"
+      none: "Kein anderer Ort zum Zusammenführen."
+      choose: "Wählen Sie den Ort, mit dem er zusammengeführt wird."
+    flash:
+      merged: "{from} mit {into} zusammengeführt: {count, plural, =0 {kein Termin verschoben} one {# Termin verschoben} other {# Termine verschoben}}."
   widget:
     upcoming: "{count, plural, =0 {kommende Termine} one {kommender Termin} other {kommende Termine}}"
     none: "Keine kommenden Termine."

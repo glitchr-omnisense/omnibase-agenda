@@ -32,7 +32,7 @@ final class GoogleCalendarLinkTest extends TestCase
         $this->assertSame('20261114T190000Z/20261114T210000Z', $query['dates']); // no end: two hours
         $this->assertSame('Europe/Berlin', $query['ctz']);
         $this->assertSame('Elbphilharmonie, 20457 Hamburg', $query['location']);
-        $this->assertSame('Glière — Harp Concerto op. 74', $query['details']);
+        $this->assertSame("Programme:\nGlière — Harp Concerto op. 74", $query['details']);
     }
 
     public function testItsEndWhenItHasOne(): void

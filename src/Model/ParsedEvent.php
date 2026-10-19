@@ -40,13 +40,16 @@ final class ParsedEvent
         /** @var list<string>|null one work per line: "Glière — Harp Concerto op. 74" */
         public readonly ?array $programme = null,
         public readonly ?string $tickets = null,
-        /** A picture's address: the date's cover when it has none. */
+        /** The date's own picture's address: its cover when it has none. */
         public readonly ?string $image = null,
         /**
          * The hall as the source structures it, when it does: what a Venue is
          * found or opened from instead of splitting `location`.
          *
-         * @var array{name: string, hall?: ?string, address?: ?string, postcode?: ?string, city?: ?string, country?: ?string, latitude?: ?float, longitude?: ?float}|null
+         * `photo` (an address) and `photoCredit` are the house's picture: its
+         * photo when it has none.
+         *
+         * @var array{name: string, hall?: ?string, address?: ?string, postcode?: ?string, city?: ?string, country?: ?string, latitude?: ?float, longitude?: ?float, photo?: ?string, photoCredit?: ?string}|null
          */
         public readonly ?array $place = null,
     ) {

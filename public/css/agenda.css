@@ -45,8 +45,9 @@
 .agenda-back a { color: var(--_soft); text-decoration: none; }
 .agenda-page.is-cancelled h1 { text-decoration: line-through; text-decoration-thickness: 2px; }
 .agenda-notice { margin: 1rem 0 0; padding: .7rem 1rem; border-radius: .6rem; background: var(--_surface); border-left: 4px solid var(--_soft); font-weight: 600; }
-.agenda-cover { margin: 1.5rem 0; border-radius: .9rem; overflow: hidden; }
-.agenda-cover img { display: block; width: 100%; height: auto; }
+.agenda-cover { margin: 1.5rem 0; }
+.agenda-cover img { display: block; width: 100%; height: auto; border-radius: .9rem; }
+.agenda-cover figcaption { margin-top: .4rem; font-size: .75rem; opacity: .7; }
 .agenda-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1rem 1.5rem; margin: 1.75rem 0; padding: 1.25rem 0; border-top: 1px solid var(--_line); border-bottom: 1px solid var(--_line); }
 .agenda-facts dt { margin-bottom: .3rem; font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--_soft); }
 .agenda-facts dd { margin: 0; line-height: 1.5; }

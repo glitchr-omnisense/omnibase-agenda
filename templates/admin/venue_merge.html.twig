@@ -1,0 +1,53 @@
+{#
+ # One house merged into another (Base\Agenda\Controller\Admin\Crud\VenueCrudController::merge):
+ # the others listed, the likely same first, each with its dates; the one chosen keeps
+ # every date and this house's spelling, this one goes.
+ #}
+{% extends '@Admin/layout.html.twig' %}
+
+{% block page_title %}{{ '@agenda.admin.venue.merge.title'|trans({venue: venue.label}) }}{% endblock %}
+
+{% block content_header %}
+<div class="admin-header">
+    <span class="admin-header-icon"><i class="fa-solid fa-code-merge"></i></span>
+    <div class="admin-header-titles">
+        <h1>{{ '@agenda.admin.venue.merge.title'|trans({venue: venue.label}) }}</h1>
+        <div class="admin-header-subtitle">{{ '@agenda.admin.venue.merge.lead'|trans({count: dates}) }}</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+    .venue-merge { display: grid; gap: 1rem; max-width: 48rem; }
+    .venue-merge .card { padding: 1.1rem 1.25rem; }
+    .venue-merge ul { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: .35rem; }
+    .venue-merge label { display: flex; align-items: baseline; gap: .6rem; padding: .45rem .6rem; border-radius: .5rem; cursor: pointer; }
+    .venue-merge label:hover { background: rgba(127,127,127,.08); }
+    .venue-merge .is-likely { font-weight: 700; }
+    .venue-merge small { opacity: .7; margin-left: auto; white-space: nowrap; }
+</style>
+<div class="venue-merge">
+    {% for type, messages in app.flashes(['success', 'warning', 'danger']) %}{% for message in messages %}<div class="alert alert-{{ type }}">{{ message|trans }}</div>{% endfor %}{% endfor %}
+
+    <form class="card" method="post">
+        <input type="hidden" name="_token" value="{{ csrf_token('admin-action-merge') }}">
+        <h2 class="h6">{{ '@agenda.admin.venue.merge.into'|trans }}</h2>
+        {% if others %}
+        <ul>
+            {% for other in others %}
+            <li><label class="{{ other.likeness >= 80 ? 'is-likely' }}">
+                <input type="radio" name="into" value="{{ other.venue.id }}" required {{ loop.first and other.likeness >= 80 ? 'checked' }}>
+                <span>{{ other.venue.label }}{% if other.likeness >= 80 %} — {{ '@agenda.admin.venue.merge.likely'|trans }}{% endif %}</span>
+                <small>{{ '@agenda.admin.venue.merge.dates'|trans({count: other.dates}) }}</small>
+            </label></li>
+            {% endfor %}
+        </ul>
+        <p class="small text-muted">{{ '@agenda.admin.venue.merge.help'|trans({venue: venue.label}) }}</p>
+        <button class="btn btn-primary" type="submit"><i class="fa-solid fa-code-merge"></i> {{ '@agenda.admin.venue.merge.submit'|trans }}</button>
+        {% else %}
+        <p class="mb-0">{{ '@agenda.admin.venue.merge.none'|trans }}</p>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}

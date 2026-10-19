@@ -53,7 +53,7 @@ final class OpenToAdminsTest extends KernelTestCase
     public static function cruds(): iterable
     {
         yield 'events' => [EventCrudController::class, ['duplicate', 'sync'], true];
-        yield 'venues' => [VenueCrudController::class, [], true];
+        yield 'venues' => [VenueCrudController::class, ['merge'], true];
     }
 
     /**

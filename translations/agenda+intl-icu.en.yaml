@@ -12,6 +12,7 @@ index:
   older: "Older"
 
 event:
+  photo_credit: "Photo: {credit}"
   back: "The agenda"
   when: "When"
   where: "Where"
@@ -83,7 +84,7 @@ admin:
     flash:
       duplicated: "Date duplicated, as a draft: set its day."
       no_source: "No calendar to read: paste its address in Agenda › Google Calendar."
-      synced: "Calendars read: {created} new, {updated} updated, {cancelled} cancelled."
+      synced: "Calendars read: {created} new, {updated} updated, {cancelled} cancelled, {missing} gone from their calendar (waiting on the calendar page)."
   calendar:
     title: "Google Calendar"
     lead: "The dates kept in a Google Calendar, from a phone: the site reads it every 30 minutes. Nobody needs to log in here to add a concert."
@@ -104,12 +105,15 @@ admin:
       cancelled: "cancelled"
       unchanged: "unchanged"
       never: "Not read yet"
-      help: "The calendar is read every 30 minutes. To see a change at once, sync now."
-      now: "Sync now"
+      help: "The calendar is read and applied every 30 minutes. To see a change at once, read it now: what it would change is shown first, and applied only when you say so."
+      now: "Read the calendar now"
+      missing: "gone, waiting"
     howto:
       title: "How to"
       create: "In Google Calendar (on a computer, calendar.google.com), make a calendar for the concerts only: \"Other calendars\" › \"+\" › \"Create new calendar\", named \"Concerts\"."
       share: "If the agency keeps the dates too: the calendar's \"Settings and sharing\" › \"Share with specific people\" › its address, with \"Make changes to events\"."
+      import: "Already dates on the site? Bring them into the new calendar first, so nothing is doubled: download the site's calendar, then in Google Calendar \"Settings\" › \"Import & export\" › \"Import\" it into \"Concerts\". Each date keeps its identity: the site recognises it when it reads it back."
+      import_link: "Download the site's calendar (.ics)"
       secret: "In the same settings, \"Integrate calendar\" › \"Secret address in iCal format\": copy it."
       paste: "Paste it above and save. That is all: from now on the concerts are written in Google Calendar, on the phone or the computer."
       write: "A concert is an event of that calendar: the title is the concert's name, the location the hall and its address, the hours the concert's, and the description one piece of information per line - for example:"
@@ -142,8 +146,35 @@ admin:
     after:
       title: "Then"
       edit: "A change in the calendar is on the site within 30 minutes."
-      delete: "A concert deleted from the calendar stays on the site, marked \"cancelled\": whoever had a ticket finds it."
+      delete: "A concert deleted from the calendar is not cancelled on its own: it waits on this page until you say whether it is cancelled (struck through on the site, whoever had a ticket finds it) or kept."
       lock: "A date whose texts were rewritten on the site keeps them when \"Keep the site's texts\" is ticked on it (Agenda › Concerts): the calendar then only moves its hours and cancels it."
+    preview:
+      title: "What the calendar would change"
+      nothing: "Nothing to change: the site already says what the calendar says ({count, plural, one {# date} other {# dates}} read)."
+      lead: "Read just now, nothing applied yet: {created} new, {updated} updated, {cancelled} cancelled, {missing} gone from the calendar."
+      apply: "Apply these changes"
+      cancel: "Leave it"
+      help: "The calendar is read again when you apply: a change made in it meanwhile is taken too. A date gone from the calendar is not cancelled: it waits below for your word."
+    missing:
+      title: "Gone from the calendar"
+      lead: "{count, plural, one {This date is no longer in its calendar.} other {These # dates are no longer in their calendar.}} Deleted on purpose, or by a slip of the finger?"
+      cancel: "Mark cancelled"
+      keep: "Keep on the site"
+      help: "Cancelled: struck through on the site, whoever had a ticket finds it. Kept: the date stays as it is and becomes the site's own - no calendar asks about it again."
+      flash:
+        cancelled: "{count, plural, =0 {No date cancelled.} one {# date marked cancelled.} other {# dates marked cancelled.}}"
+        kept: "{count, plural, =0 {No date kept.} one {# date kept on the site.} other {# dates kept on the site.}}"
+    history:
+      title: "Last changes"
+      counts: "{created} new, {updated} updated, {cancelled} cancelled, {missing} gone"
+      more: "and {count} more"
+    changes:
+      created: "New"
+      updated: "Updated"
+      cancelled: "Cancelled"
+      missing: "Gone"
+      "yes": "yes"
+      "no": "no"
     flash:
       saved: "Address saved: the calendar is read at the next sync."
       forgotten: "Address forgotten: that calendar is no longer read."
@@ -162,6 +193,25 @@ admin:
     latitude: "Latitude"
     longitude: "Longitude"
     slug: "Slug"
+    photo: "Photo"
+    photo_help: "Shown on every date here that has no picture of its own."
+    photo_credit: "Photo credit"
+    photo_credit_help: "Who took it: shown under the picture (\"Peter Kaminski\"). A photographer's picture needs their agreement and their name."
+    aliases: "Also written"
+    action:
+      merge: "Merge into…"
+    merge:
+      title: "Merge {venue}"
+      lead: "{count, plural, =0 {No date here.} one {Its date goes to the house chosen.} other {Its # dates go to the house chosen.}}"
+      into: "The same house as"
+      likely: "likely the same"
+      dates: "{count, plural, =0 {no date} one {# date} other {# dates}}"
+      help: "The house chosen keeps its name and takes what it lacks from this one (address, map, photo); \"{venue}\" is deleted, and a calendar that still writes it finds the house chosen."
+      submit: "Merge"
+      none: "No other house to merge it into."
+      choose: "Choose the house to merge it into."
+    flash:
+      merged: "{from} merged into {into}: {count, plural, =0 {no date moved} one {# date moved} other {# dates moved}}."
   widget:
     upcoming: "{count, plural, =0 {date to come} one {date to come} other {dates to come}}"
     none: "No date to come."

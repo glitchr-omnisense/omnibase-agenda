@@ -75,7 +75,8 @@ final class FeedParser
             performers: $list('performers'),
             programme: $list('programme'),
             tickets: $text('tickets'),
-            image: $text('image'),
+            // The picture a date shows is its house's when it has none of its own: that one is the house's photo.
+            image: null !== ($image = $text('image')) && $image !== ($venue['photo'] ?? null) ? $image : null,
             place: $venue && \is_string($venue['name'] ?? null) && '' !== trim($venue['name']) ? [
                 'name' => trim($venue['name']),
                 'hall' => $venue['hall'] ?? null,
@@ -85,6 +86,8 @@ final class FeedParser
                 'country' => $venue['country'] ?? null,
                 'latitude' => is_numeric($venue['latitude'] ?? null) ? (float) $venue['latitude'] : null,
                 'longitude' => is_numeric($venue['longitude'] ?? null) ? (float) $venue['longitude'] : null,
+                'photo' => \is_string($venue['photo'] ?? null) && '' !== $venue['photo'] ? $venue['photo'] : null,
+                'photoCredit' => \is_string($venue['photoCredit'] ?? null) && '' !== trim($venue['photoCredit']) ? trim($venue['photoCredit']) : null,
             ] : null,
         );
     }

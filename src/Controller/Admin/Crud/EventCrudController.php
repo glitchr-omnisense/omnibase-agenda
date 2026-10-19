@@ -33,7 +33,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * are. Published, a date is on /agenda; a date read from a calendar
  * follows it at each sync, unless "Keep the site's texts" (syncLocked) is
  * ticked - then only its hours and its cancellation follow. Two buttons on
- * top: duplicate a date (the next one of a tour) and read the calendars now.
+ * top: duplicate a date (the next one of a tour) and read the calendars now
+ * (the calendar page's preview: what would change, then "Apply").
  */
 #[OpenToAdmins(actions: ['duplicate', 'sync'])]
 class EventCrudController extends AbstractCrudController
@@ -115,8 +116,7 @@ class EventCrudController extends AbstractCrudController
         if ($this->importer->hasSources()) {
             $actions->add(Actions::PAGE_INDEX, Action::new('sync', '@agenda.admin.event.action.sync', 'fa-solid fa-rotate')
                 ->createAsGlobalAction()
-                ->linkToCrudAction('sync')
-                ->askConfirmation('@agenda.admin.event.action.sync_confirm'));
+                ->linkToCrudAction('sync'));
         }
 
         return $actions;
@@ -148,8 +148,8 @@ class EventCrudController extends AbstractCrudController
         return $this->redirect($this->adminUrlGenerator->setController(static::class)->setAction(Action::EDIT)->setEntityId($copy->getId())->generateUrl());
     }
 
-    /** The calendars read now, as agenda:sync does. */
-    #[AdminAction('/sync')]
+    /** The calendars read now: what they would change, on the calendar page, before "Apply". */
+    #[AdminAction('/sync', methods: ['GET'])]
     public function sync(): Response
     {
         if (!$this->importer->hasSources()) {
@@ -158,13 +158,6 @@ class EventCrudController extends AbstractCrudController
             return $this->redirectToIndex();
         }
 
-        $summary = $this->importer->sync();
-        $this->importer->remember($summary);
-        foreach ($summary->errors as $error) {
-            $this->addFlash('danger', $error);
-        }
-        $this->addFlash('success', $this->translator->trans('admin.event.flash.synced', $summary->toArray(), 'agenda'));
-
-        return $this->redirectToIndex();
+        return $this->redirectToRoute('agenda_admin_calendar', ['preview' => 1, '_fragment' => 'preview']);
     }
 }

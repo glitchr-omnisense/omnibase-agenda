@@ -1,9 +1,12 @@
 {#
  # The Google Calendar the dates come from (Base\Agenda\Controller\Admin\CalendarController),
- # in the style of the back office's tools pages: the address, the last sync and
- # its button, then the how-to and an example to copy, in the reader's language.
+ # in the style of the back office's tools pages: the address, the last sync and the
+ # button that reads the calendar now, what it would change (applied only on "Apply"),
+ # the dates gone from their calendar waiting for a word, the syncs that changed
+ # something, then the how-to and an example to copy, in the reader's language.
  #}
 {% extends '@Admin/layout.html.twig' %}
+{% import _self as agenda %}
 
 {% block page_title %}{{ '@agenda.admin.calendar.title'|trans }}{% endblock %}
 
@@ -41,6 +44,18 @@
     .agenda-keys { display: grid; grid-template-columns: max-content 1fr; gap: .3rem 1rem; font-size: .88rem; margin: 0; }
     .agenda-keys dt { font-weight: 700; }
     .agenda-keys dd { margin: 0; }
+    .agenda-changes { list-style: none; padding: 0; margin: .4rem 0 1rem; display: grid; gap: .55rem; }
+    .agenda-changes > li { padding: .55rem .75rem; border-radius: .5rem; background: rgba(127,127,127,.07); }
+    .agenda-change-kind { display: inline-block; min-width: 6.5rem; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .agenda-change-kind.is-created { color: #2d6a4f; } .agenda-change-kind.is-updated { color: #1d5d9b; } .agenda-change-kind.is-cancelled, .agenda-change-kind.is-missing { color: #c0392b; }
+    .agenda-change-when { font-variant-numeric: tabular-nums; opacity: .75; margin-right: .4rem; }
+    .agenda-change-fields { display: grid; grid-template-columns: max-content 1fr; gap: .15rem .9rem; margin: .4rem 0 0; font-size: .85rem; }
+    .agenda-change-fields dt { font-weight: 600; opacity: .8; }
+    .agenda-change-fields dd { margin: 0; white-space: pre-line; word-break: break-word; }
+    .agenda-change-fields del { opacity: .6; }
+    .agenda-change-fields ins { text-decoration: none; font-weight: 600; }
+    .agenda-missing { list-style: none; padding: 0; margin: .4rem 0 1rem; display: grid; gap: .3rem; }
+    .agenda-run summary { cursor: pointer; padding: .35rem 0; }
 </style>
 <div class="tools-admin">
     {% for type, messages in app.flashes(['success', 'warning', 'danger']) %}{% for message in messages %}<div class="alert alert-{{ type }}">{{ message }}</div>{% endfor %}{% endfor %}
@@ -81,6 +96,7 @@
             <div><b>{{ last.created }}</b><span>{{ '@agenda.admin.calendar.sync.created'|trans }}</span></div>
             <div><b>{{ last.updated }}</b><span>{{ '@agenda.admin.calendar.sync.updated'|trans }}</span></div>
             <div><b>{{ last.cancelled }}</b><span>{{ '@agenda.admin.calendar.sync.cancelled'|trans }}</span></div>
+            <div><b>{{ last.missing }}</b><span>{{ '@agenda.admin.calendar.sync.missing'|trans }}</span></div>
             {% if last.unchanged is defined %}<div><b>{{ last.unchanged }}</b><span>{{ '@agenda.admin.calendar.sync.unchanged'|trans }}</span></div>{% endif %}
         </div>
         {% for error in last.errors %}<div class="alert alert-danger small">{{ error }}</div>{% endfor %}
@@ -89,18 +105,67 @@
         {% endif %}
         <p class="text-muted small">{{ '@agenda.admin.calendar.sync.help'|trans }}</p>
         {% if has_sources %}
-        <form class="inline" method="post" action="{{ path('agenda_admin_calendar_sync') }}">
-            <input type="hidden" name="_token" value="{{ csrf_token('agenda-sync') }}">
-            <button class="btn btn-primary" type="submit"><i class="fa-solid fa-rotate"></i> {{ '@agenda.admin.calendar.sync.now'|trans }}</button>
-        </form>
+        <a class="btn btn-primary" href="{{ path('agenda_admin_calendar', {preview: 1}) }}#preview"><i class="fa-solid fa-magnifying-glass"></i> {{ '@agenda.admin.calendar.sync.now'|trans }}</a>
         {% endif %}
     </div>
+
+    {% if preview %}
+    <div class="card" id="preview">
+        <h2>{{ '@agenda.admin.calendar.preview.title'|trans }}</h2>
+        {% for error in preview.errors %}<div class="alert alert-danger small">{{ error }}</div>{% endfor %}
+        {% if preview.empty %}
+        <p class="state is-on mb-0">{{ '@agenda.admin.calendar.preview.nothing'|trans({count: preview.unchanged}) }}</p>
+        {% else %}
+        <p>{{ '@agenda.admin.calendar.preview.lead'|trans(preview.toArray) }}</p>
+        {{ agenda.changes(preview.changes) }}
+        <form class="inline" method="post" action="{{ path('agenda_admin_calendar_sync') }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('agenda-sync') }}">
+            <button class="btn btn-primary" type="submit"><i class="fa-solid fa-check"></i> {{ '@agenda.admin.calendar.preview.apply'|trans }}</button>
+        </form>
+        <a class="btn btn-outline-secondary" href="{{ path('agenda_admin_calendar') }}">{{ '@agenda.admin.calendar.preview.cancel'|trans }}</a>
+        <p class="small text-muted mt-2 mb-0">{{ '@agenda.admin.calendar.preview.help'|trans }}</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if missing %}
+    <div class="card" id="missing">
+        <h2>{{ '@agenda.admin.calendar.missing.title'|trans }}</h2>
+        <p>{{ '@agenda.admin.calendar.missing.lead'|trans({count: missing|length}) }}</p>
+        <form method="post" action="{{ path('agenda_admin_calendar_missing') }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('agenda-missing') }}">
+            <ul class="agenda-missing">
+                {% for event in missing %}
+                <li><label><input type="checkbox" name="ids[]" value="{{ event.id }}" checked> <span class="agenda-change-when">{{ event.startsAtLocal|format_datetime('medium', event.allDay ? 'none' : 'short', timezone: false) }}</span> {{ event.title }}{% if event.venue %} · {{ event.venue.label }}{% endif %}</label></li>
+                {% endfor %}
+            </ul>
+            <button class="btn btn-danger" type="submit" name="decision" value="cancel"><i class="fa-solid fa-ban"></i> {{ '@agenda.admin.calendar.missing.cancel'|trans }}</button>
+            <button class="btn btn-outline-secondary" type="submit" name="decision" value="keep"><i class="fa-solid fa-thumbtack"></i> {{ '@agenda.admin.calendar.missing.keep'|trans }}</button>
+            <p class="small text-muted mt-2 mb-0">{{ '@agenda.admin.calendar.missing.help'|trans }}</p>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if history %}
+    <div class="card">
+        <h2>{{ '@agenda.admin.calendar.history.title'|trans }}</h2>
+        {% for run in history %}
+        <details class="agenda-run">
+            <summary>{{ run.at|format_datetime('medium', 'short') }} — {{ '@agenda.admin.calendar.history.counts'|trans({created: run.created, updated: run.updated, cancelled: run.cancelled, missing: run.missing}) }}</summary>
+            {% for error in run.errors %}<div class="alert alert-danger small mt-2">{{ error }}</div>{% endfor %}
+            {{ agenda.changes(run.changes) }}
+            {% if run.more %}<p class="small text-muted">{{ '@agenda.admin.calendar.history.more'|trans({count: run.more}) }}</p>{% endif %}
+        </details>
+        {% endfor %}
+    </div>
+    {% endif %}
 
     <div class="card agenda-howto">
         <h2>{{ '@agenda.admin.calendar.howto.title'|trans }}</h2>
         <ol>
             <li>{{ '@agenda.admin.calendar.howto.create'|trans }}</li>
             <li>{{ '@agenda.admin.calendar.howto.share'|trans }}</li>
+            {% if feed_url %}<li>{{ '@agenda.admin.calendar.howto.import'|trans }} <a href="{{ feed_url }}" download>{{ '@agenda.admin.calendar.howto.import_link'|trans }}</a></li>{% endif %}
             <li>{{ '@agenda.admin.calendar.howto.secret'|trans }}</li>
             <li>{{ '@agenda.admin.calendar.howto.paste'|trans }}</li>
             <li>{{ '@agenda.admin.calendar.howto.write'|trans }}</li>
@@ -134,3 +199,24 @@
     </div>
 </div>
 {% endblock %}
+
+{# Each change as it reads: what happens to the date, when it is, and each field as it was and as it becomes. #}
+{% macro changes(changes) %}
+{% set labels = {startsAt: 'starts_at', endsAt: 'ends_at', allDay: 'all_day', timezone: 'timezone', cancelled: 'cancelled', title: 'title', eventUrl: 'event_url', venue: 'venue', ensemble: 'ensemble', conductor: 'conductor', role: 'role', performers: 'performers', programme: 'programme', ticketsUrl: 'tickets_url'} %}
+<ul class="agenda-changes">
+    {% for change in changes %}
+    <li>
+        <span class="agenda-change-kind is-{{ change.kind }}">{{ ('@agenda.admin.calendar.changes.' ~ change.kind)|trans }}</span>
+        <span class="agenda-change-when">{{ change.start }}</span> <strong>{{ change.title }}</strong>
+        {% if change.kind != 'missing' and change.fields %}
+        <dl class="agenda-change-fields">
+            {% for field, values in change.fields %}
+            <dt>{{ ('@agenda.admin.event.' ~ (labels[field] ?? field))|trans }}</dt>
+            <dd>{% for value in values %}{% if change.kind == 'created' and loop.first %}{% elseif value is null %}<{{ loop.first ? 'del' : 'ins' }}>∅</{{ loop.first ? 'del' : 'ins' }}>{% else %}<{{ loop.first ? 'del' : 'ins' }}>{{ value in ['yes', 'no'] ? ('@agenda.admin.calendar.changes.' ~ value)|trans : (field == 'role' ? value|agenda_role_label : value) }}</{{ loop.first ? 'del' : 'ins' }}>{% endif %}{% if loop.first and change.kind != 'created' %} → {% endif %}{% endfor %}</dd>
+            {% endfor %}
+        </dl>
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+{% endmacro %}
