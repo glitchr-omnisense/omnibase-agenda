@@ -1,6 +1,6 @@
 # Agenda
 
-Concert dates for [omnibase](https://github.com/glitchr-studio/omnibase): the
+Concert dates for [omnibase](https://github.com/glitchr-omnisense/omnibase): the
 dates of a site - a harpist's, a violinist's, a school's open days, a shop's
 late openings - where they happen, with whom, what is played, where the
 tickets are; the calendar visitors subscribe to, the "add to my calendar"
@@ -148,10 +148,10 @@ back, so one omnibase site can take another's dates (see below).
 The page offers `webcal://…/agenda.ics`: a phone, Apple Calendar or Outlook
 subscribes to it and follows the changes; Google Calendar takes the same
 address in *Other calendars → From URL*. Each date has two links more: Google
-Calendar's own template page and its `.ics`, both written by omniscient/omnibase's
+Calendar's own template page and its `.ics`, both written by omnisense/omnibase's
 `Base\Service\Calendar` from `Event::toCalendarEntry()` (`docs/calendar.md`).
 
-The files are written by hand (omniscient/omnibase's `Base\Service\Calendar\Ics`, RFC 5545): CRLF, lines folded at
+The files are written by hand (omnisense/omnibase's `Base\Service\Calendar\Ics`, RFC 5545): CRLF, lines folded at
 75 octets, texts escaped, the hour in the hall's timezone with its
 `VTIMEZONE`, whole days as dates, `STATUS:CANCELLED`, and the UID of the entry
 a date was imported from, so a calendar that holds both never shows it twice.

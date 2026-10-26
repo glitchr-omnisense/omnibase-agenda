@@ -1,7 +1,7 @@
 # ICS feeds and Google Calendar links
 
 The iCalendar writing (RFC 5545) and the Google Calendar link are
-omniscient/omnibase's `Base\Service\Calendar\{Ics, GoogleCalendarLink}`, on a
+omnisense/omnibase's `Base\Service\Calendar\{Ics, GoogleCalendarLink}`, on a
 `CalendarEntry`. The agenda maps its dates there:
 
 - `Event::toCalendarEntry(string $uid, ?string $url)`: the date as a calendar
