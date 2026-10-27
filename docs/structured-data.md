@@ -1,3 +1,8 @@
+---
+title: Structured data (JSON-LD)
+order: 33
+---
+
 # Structured data (JSON-LD)
 
 Each date's page (`agenda_event`) carries a schema.org event in a
