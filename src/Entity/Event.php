@@ -2,6 +2,7 @@
 
 namespace Base\Agenda\Entity;
 
+use Base\Contract\Link;
 use Base\Agenda\Enum\Role;
 use Base\Agenda\Repository\EventRepository;
 use Base\Database\Attribute\DiscriminatorEntry;
@@ -45,7 +46,7 @@ class Event extends Thread implements LinkableInterface
 
     public function __toLink(array $routeParameters = [], int $referenceType = UrlGeneratorInterface::ABSOLUTE_PATH): ?string
     {
-        return $this->getRouter()->generate('agenda_event', array_merge($routeParameters, ['slug' => $this->getSlug()]), $referenceType);
+        return Link::to('agenda_event', array_merge($routeParameters, ['slug' => $this->getSlug()]), $referenceType);
     }
 
     #[ORM\Column(type: 'datetime_immutable')]
