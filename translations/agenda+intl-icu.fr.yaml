@@ -65,7 +65,7 @@ admin:
     programme: "Programme"
     programme_help: "Une œuvre par ligne : « Glière — Concerto pour harpe op. 74 »."
     performers: "Interprètes"
-    performers_help: "Un par ligne : « Anna Meyer — harpe »."
+    performers_help: "Un par ligne : « Anna Berg — harpe »."
     tickets_url: "Billetterie (lien)"
     event_url: "Page de l'organisateur (lien)"
     cover: "Image"
@@ -119,13 +119,13 @@ admin:
       write: "Un concert est un événement de cet agenda : le titre est le nom du concert, le lieu la salle et son adresse, les horaires ceux du concert, et la description une information par ligne - par exemple :"
     example:
       title: "Titre : Perspectives concertantes — Glière"
-      where: "Lieu : Elbphilharmonie, Platz der Deutschen Einheit 1, 20457 Hamburg"
+      where: "Lieu : Harbour Hall, Hafenplatz 1, 20457 Hamburg"
       description_label: "Description :"
       description: |
-        Orchestre : NDR Elbphilharmonie Orchester
-        Chef : Vasily Petrenko
+        Orchestre : Hafen Sinfonieorchester
+        Chef : Viktor Lang
         Rôle : soliste
-        Billets : https://www.elbphilharmonie.de/...
+        Billets : https://hall.example/...
         Programme :
         Glière — Concerto pour harpe op. 74
         Debussy — Danses sacrée et profane
@@ -139,7 +139,7 @@ admin:
       role: "Rôle"
       role_words: "soliste, violon solo, chambre, orchestre, récital, masterclass"
       performers: "Avec"
-      performers_help: "sur la ligne, séparés par des virgules (« Anna Meyer, harpe »), ou un par ligne en dessous"
+      performers_help: "sur la ligne, séparés par des virgules (« Anna Berg, harpe »), ou un par ligne en dessous"
       tickets: "Billets"
       programme: "Programme"
       programme_help: "une œuvre par ligne en dessous : « Compositeur — Œuvre »"

@@ -51,7 +51,7 @@ final class EventTest extends TestCase
     {
         $event = new TestEvent('Concert');
         $event->setProgramme("  Glière — Harp Concerto op. 74 \r\n\r\nDebussy: Danses sacrée et profane\nBach-Busoni chaconne\n");
-        $event->setPerformers("Anna Meyer — harp\nJonas Weber, violin\n\nQuatuor Ébène");
+        $event->setPerformers("Anna Berg — harp\nJonas Weber, violin\n\nQuatuor Lumière");
 
         $this->assertSame(['Glière — Harp Concerto op. 74', 'Debussy: Danses sacrée et profane', 'Bach-Busoni chaconne'], $event->getProgrammeLines());
         $this->assertSame([
@@ -59,7 +59,7 @@ final class EventTest extends TestCase
             ['composer' => 'Debussy', 'work' => 'Danses sacrée et profane'],
             ['composer' => null, 'work' => 'Bach-Busoni chaconne'],
         ], $event->getProgrammeWorks());
-        $this->assertSame(['Anna Meyer — harp', 'Jonas Weber, violin', 'Quatuor Ébène'], $event->getPerformerLines());
+        $this->assertSame(['Anna Berg — harp', 'Jonas Weber, violin', 'Quatuor Lumière'], $event->getPerformerLines());
         $this->assertSame(['name' => 'Jonas Weber', 'part' => 'violin'], $event->getPerformerNames()[1]);
 
         $this->assertSame([], (new TestEvent())->getProgrammeLines());
@@ -78,7 +78,7 @@ final class EventTest extends TestCase
     public function testADuplicateKeepsTheVenueAndForgetsTheCalendar(): void
     {
         $event = TestEvent::at('2026-11-14 20:00');
-        $event->setVenue($venue = new Venue('Elbphilharmonie', 'Hamburg'));
+        $event->setVenue($venue = new Venue('Harbour Hall', 'Hamburg'));
         $event->setSourceUid('abc@google.com');
         $event->setTicketsUrl('https://example.org/tickets');
 
@@ -108,13 +108,13 @@ final class EventTest extends TestCase
     public function testTheJsonLd(): void
     {
         $event = TestEvent::at('2026-11-14 20:00', 'Europe/Berlin', 'Perspectives concertantes', '2026-11-14 22:00');
-        $event->setVenue((new Venue('Elbphilharmonie', 'Hamburg'))->setAddress('Platz der Deutschen Einheit 1')->setCountry('DE'));
-        $event->setEnsemble('NDR Elbphilharmonie Orchester');
+        $event->setVenue((new Venue('Harbour Hall', 'Hamburg'))->setAddress('Hafenplatz 1')->setCountry('DE'));
+        $event->setEnsemble('Hafen Sinfonieorchester');
         $event->setProgramme('Glière — Harp Concerto op. 74');
         $event->setTicketsUrl('https://example.org/tickets');
         $event->setCancelled(true);
 
-        $data = (new JsonLd())->for($event, 'https://anna.example/agenda/a-concert', null, 'Anna Meyer');
+        $data = (new JsonLd())->for($event, 'https://anna.example/agenda/a-concert', null, 'Anna Berg');
 
         $this->assertSame('MusicEvent', $data['@type']);
         $this->assertSame('2026-11-14T20:00:00+01:00', $data['startDate']);
@@ -122,7 +122,7 @@ final class EventTest extends TestCase
         $this->assertSame('https://schema.org/EventCancelled', $data['eventStatus']);
         $this->assertSame('Hamburg', $data['location']['address']['addressLocality']);
         $this->assertSame('PostalAddress', $data['location']['address']['@type']);
-        $this->assertSame([['@type' => 'Person', 'name' => 'Anna Meyer'], ['@type' => 'MusicGroup', 'name' => 'NDR Elbphilharmonie Orchester']], $data['performer']);
+        $this->assertSame([['@type' => 'Person', 'name' => 'Anna Berg'], ['@type' => 'MusicGroup', 'name' => 'Hafen Sinfonieorchester']], $data['performer']);
         $this->assertSame('https://example.org/tickets', $data['offers']['url']);
         $this->assertSame('Glière', $data['workPerformed'][0]['creator']['name']);
         $this->assertArrayNotHasKey('image', $data);
@@ -136,7 +136,7 @@ final class EventTest extends TestCase
         $event->setEnsemble('Virginia Council of Teachers of Mathematics');
         $event->setProgramme("The Beauty of Mathematics\nTeaching Fractions with Meaning: a workshop");
 
-        $data = (new JsonLd(JsonLd::EDUCATION_EVENT))->for($event, null, null, 'Monica Neagoy');
+        $data = (new JsonLd(JsonLd::EDUCATION_EVENT))->for($event, null, null, 'Jeanne Exemple');
         $this->assertSame('EducationEvent', $data['@type']);
         $this->assertSame([['@type' => 'CreativeWork', 'name' => 'The Beauty of Mathematics'], ['@type' => 'CreativeWork', 'name' => 'Teaching Fractions with Meaning: a workshop']], $data['workPerformed']);
         $this->assertSame('PerformingGroup', $data['performer'][1]['@type']);

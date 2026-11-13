@@ -39,7 +39,7 @@ use Base\Agenda\Service\JsonLd;
 
 public function __construct(private readonly JsonLd $jsonLd) {}
 
-$data = $this->jsonLd->for($event, $absoluteUrl, $absoluteImageUrl, 'Monica Neagoy');
+$data = $this->jsonLd->for($event, $absoluteUrl, $absoluteImageUrl, 'Jeanne Exemple');
 $this->jsonLd->getType();   // 'EducationEvent'
 ```
 

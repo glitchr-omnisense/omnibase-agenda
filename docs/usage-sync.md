@@ -45,10 +45,10 @@ file.
    hall and its address, the description one piece of information per line.
 
 ```
-Orchestre : NDR Elbphilharmonie Orchester
-Chef : Vasily Petrenko
+Orchestre : Hafen Sinfonieorchester
+Chef : Viktor Lang
 Rôle : soliste
-Billets : https://www.elbphilharmonie.de/...
+Billets : https://hall.example/...
 Programme :
 Glière — Concerto pour harpe op. 74
 Debussy — Danses sacrée et profane
@@ -64,7 +64,7 @@ case and accents, in English, French, German and Italian:
 | ensemble | Orchestra, Ensemble, Orchestre, Orchester |
 | conductor | Conductor, Chef, Direction, Dirigent, Leitung, Direttore |
 | role | Role, Rôle, Rolle, Ruolo - soloist, concertmaster, chamber, orchestra, recital, masterclass in any of the four languages |
-| performers | With, Avec, Mit, Con - on the line, comma-separated ("Anna Meyer, harpe" stays one), or one per line under it |
+| performers | With, Avec, Mit, Con - on the line, comma-separated ("Anna Berg, harpe" stays one), or one per line under it |
 | tickets | Tickets, Billets, Karten, Biglietti - the first address |
 | programme | Programme, Program, Programm, Programma - the lines under it, until a blank line or another word |
 
@@ -75,20 +75,20 @@ omnisense/omnibase's harness image:
 ```php
 use Base\Agenda\Service\DescriptionParser;
 
-print_r(DescriptionParser::parse("Orchestre : NDR Elbphilharmonie Orchester\nChef : Vasily Petrenko\nRôle : soliste\nBillets : https://www.elbphilharmonie.de/de/programm/123\nProgramme :\nGlière — Concerto pour harpe op. 74\nDebussy — Danses sacrée et profane"));
+print_r(DescriptionParser::parse("Orchestre : Hafen Sinfonieorchester\nChef : Viktor Lang\nRôle : soliste\nBillets : https://hall.example/de/programm/123\nProgramme :\nGlière — Concerto pour harpe op. 74\nDebussy — Danses sacrée et profane"));
 ```
 
 ```
 Array
 (
-    [ensemble] => NDR Elbphilharmonie Orchester
-    [conductor] => Vasily Petrenko
+    [ensemble] => Hafen Sinfonieorchester
+    [conductor] => Viktor Lang
     [role] => soloist
     [performers] => Array
         (
         )
 
-    [tickets] => https://www.elbphilharmonie.de/de/programm/123
+    [tickets] => https://hall.example/de/programm/123
     [programme] => Array
         (
             [0] => Glière — Concerto pour harpe op. 74
@@ -166,7 +166,7 @@ $ics = implode("\r\n", [
     'DTSTART;TZID=Europe/Berlin:20261115T200000',
     'DTEND;TZID=Europe/Berlin:20261115T220000',
     'SUMMARY:Perspectives concertantes',
-    'LOCATION:Elbphilharmonie\, Platz der Deutschen Einheit 4\, Hamburg',
+    'LOCATION:Harbour Hall\, Hafenplatz 4\, Hamburg',
     'END:VEVENT', 'END:VCALENDAR', '',
 ]);
 foreach ((new IcsParser('Europe/Berlin'))->parse($ics) as $event) {
@@ -177,5 +177,5 @@ foreach ((new IcsParser('Europe/Berlin'))->parse($ics) as $event) {
 
 ```
 abc123@google.com | Perspectives concertantes | 2026-11-15T20:00:00+01:00 | Europe/Berlin
-location: Elbphilharmonie, Platz der Deutschen Einheit 4, Hamburg
+location: Harbour Hall, Hafenplatz 4, Hamburg
 ```

@@ -7,9 +7,10 @@
     "require": {
         "php": "^8.2",
         "doctrine/orm": "^2.15|^3.0",
-        "omnibridge/symfony": "1.x-dev",
-        "omnisense/omnibase": "3.0.*-dev || 4.0.*-dev || 5.0.*-dev",
-        "omnibase/admin": "dev-main",
+        "doctrine/doctrine-bundle": "^2.13|^3.0",
+        "omnibridge/symfony": "^1.1",
+        "omnisense/omnibase": "^5.1",
+        "omnibase/admin": "^1.0",
         "symfony/config": "^6.0|^7.0|^8.0",
         "symfony/console": "^6.0|^7.0|^8.0",
         "symfony/dependency-injection": "^6.0|^7.0|^8.0",
@@ -32,6 +33,9 @@
     "autoload-dev": {
         "psr-4": {"Base\\Agenda\\Tests\\": "./tests"}
     },
-    "minimum-stability": "dev",
-    "prefer-stable": true
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.x-dev"
+        }
+    }
 }

@@ -20,7 +20,7 @@ order: 20
 | `ensemble`, `conductor` | `string(180)` | |
 | `role` | `string(24)` | a `Role` value: `soloist`, `leader` (concertmaster), `chamber`, `orchestra`, `recital`, `masterclass`, `other` (default); `Role::of()` reads anything, `other` when unknown |
 | `programme` | `text` | one work per line: "Glière — Harp Concerto op. 74" |
-| `performers` | `text` | one per line: "Anna Meyer, harp" |
+| `performers` | `text` | one per line: "Anna Berg, harp" |
 | `ticketsUrl`, `eventUrl` | `string(500)`, URLs | where the tickets are; the organiser's page |
 | `cancelled` | `boolean` | struck through, never removed |
 | `cover` | upload, image, 8 MB | |
@@ -54,7 +54,7 @@ Methods:
 spellings merged into it), `slug` (unique, given at the first save from the name and town, `-2`
 when taken).
 
-`getLabel()` ("Elbphilharmonie, Hamburg"), `getFullAddress()` (name, hall, address, postcode and
+`getLabel()` ("Harbour Hall, Hamburg"), `getFullAddress()` (name, hall, address, postcode and
 town, country), `getMapLink()` (the map typed, else an OpenStreetMap point from the coordinates,
 else a search of the address), `isKnownAs(string $name, ?string $city)` (its own name and town or
 an alias, case and accents aside), `Venue::key()`, `getPhotoUrl()`.

@@ -7,10 +7,10 @@ namespace Base\Agenda\Service;
  * writes the date in Google Calendar from her phone, one piece of
  * information per line, opened by a word she knows in her language -
  *
- *     Orchestre : NDR Elbphilharmonie Orchester
- *     Chef : Vasily Petrenko
+ *     Orchestre : Hafen Sinfonieorchester
+ *     Chef : Viktor Lang
  *     Rôle : soliste
- *     Billets : https://www.elbphilharmonie.de/...
+ *     Billets : https://hall.example/...
  *     Programme :
  *     Glière — Concerto pour harpe op. 74
  *
@@ -44,7 +44,7 @@ final class DescriptionParser
     ];
 
     /**
-     * What a performer plays or does, folded: "Anna Meyer, harp" is one
+     * What a performer plays or does, folded: "Anna Berg, harp" is one
      * performer, not two. Squarespace's reader tells a name from a work by them too.
      */
     public const PARTS = [
@@ -191,7 +191,7 @@ final class DescriptionParser
     }
 
     /**
-     * "Anna Meyer, harpe, Jonas Weber, violon" → two performers: split on
+     * "Anna Berg, harpe, Jonas Weber, violon" → two performers: split on
      * semicolons (else commas), what one plays kept with the name before it.
      *
      * @return list<string>

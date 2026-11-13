@@ -6,7 +6,7 @@ use Base\Agenda\Model\ParsedEvent;
 use Base\Agenda\Service\SquarespaceParser;
 use PHPUnit\Framework\TestCase;
 
-/** A real excerpt of an artist's Squarespace events page (tests/Fixtures/squarespace.json): three dates to come, two gone by. */
+/** The shape of a Squarespace events page as JSON (tests/Fixtures/squarespace.json; people, places and addresses made up): three dates to come, two gone by. */
 final class SquarespaceParserTest extends TestCase
 {
     /** @return array<string, ParsedEvent> by uid */
@@ -31,10 +31,10 @@ final class SquarespaceParserTest extends TestCase
     {
         $event = $this->parse()['squarespace:6aa6df513f879725ec9b82a2'];
 
-        $this->assertSame('M. Fröst, A. Poga | NDR Elbphilharmonie Orchestra', $event->summary);
-        $this->assertSame('NDR Elbphilharmonie Orchestra', $event->ensemble);
-        $this->assertSame('Andris Poga', $event->conductor);
-        $this->assertSame(['Martin Fröst, clarinet'], $event->performers);
+        $this->assertSame('B. Laurent, C. Petit | Harbour Symphony Orchestra', $event->summary);
+        $this->assertSame('Harbour Symphony Orchestra', $event->ensemble);
+        $this->assertSame('Carl Petit', $event->conductor);
+        $this->assertSame(['Bruno Laurent, clarinet'], $event->performers);
         $this->assertSame([
             'Hugo Alfvén — Midsommarvaka - Schwedische Rhapsodie Nr. 1 op. 19',
             'Wolfgang Amadeus Mozart — Konzert für Klarinette und Orchester A-Dur KV 622',
@@ -78,12 +78,12 @@ final class SquarespaceParserTest extends TestCase
     {
         $event = $this->parse()['squarespace:6aa6df513f879725ec9b82a2'];
 
-        $this->assertSame('Peenemünde, Kraftwerk des Museums, Im Kraftwerk, 10 Fährstraße, Peenemünde, Mecklenburg-Vorpommern, 17449, Allemagne', $event->location);
+        $this->assertSame('Musterstadt, Altes Kraftwerk, Turbinenhalle, 10 Hafenstraße, Musterstadt, Mecklenburg-Vorpommern, 17449, Allemagne', $event->location);
         $this->assertSame([
-            'name' => 'Peenemünde, Kraftwerk des Museums, Im Kraftwerk',
-            'address' => '10 Fährstraße',
+            'name' => 'Musterstadt, Altes Kraftwerk, Turbinenhalle',
+            'address' => '10 Hafenstraße',
             'postcode' => '17449',
-            'city' => 'Peenemünde',
+            'city' => 'Musterstadt',
             'country' => 'DE',
             'latitude' => 54.1384187,
             'longitude' => 13.7653251,
@@ -92,7 +92,7 @@ final class SquarespaceParserTest extends TestCase
 
         // No town apart: none made up; Squarespace's New York default is no position.
         $seoul = $this->parse()['squarespace:6aa857b352d0432878b9aed6'];
-        $this->assertSame('Lotte Concert Hall', $seoul->place['name']);
+        $this->assertSame('Riverside Concert Hall', $seoul->place['name']);
         $this->assertNull($seoul->place['city']);
         $this->assertSame('KR', $seoul->place['country']);
     }
@@ -101,18 +101,18 @@ final class SquarespaceParserTest extends TestCase
     {
         $events = $this->parse();
 
-        $rattle = $events['squarespace:699dcddcfb615150a4d9fce2'];
-        $this->assertSame('Chamber Orchestra of Europe', $rattle->ensemble);
-        $this->assertSame('Sir Simon Rattle', $rattle->conductor);
-        $this->assertSame('Béla Bartók — Music for Strings, Percussion and Celesta, Sz 106', $rattle->programme[0]);
-        $this->assertCount(3, $rattle->programme);
-        $this->assertSame('https://www.elbphilharmonie.de/en/whats-on/chamber-orchestra-of-europe-sir-simon-rattle/23520', $rattle->url);
+        $blake = $events['squarespace:699dcddcfb615150a4d9fce2'];
+        $this->assertSame('Example Chamber Orchestra', $blake->ensemble);
+        $this->assertSame('Sir Henry Blake', $blake->conductor);
+        $this->assertSame('Béla Bartók — Music for Strings, Percussion and Celesta, Sz 106', $blake->programme[0]);
+        $this->assertCount(3, $blake->programme);
+        $this->assertSame('https://hall.example/en/whats-on/example-chamber-orchestra-sir-henry-blake/23520', $blake->url);
 
         $parnu = $events['squarespace:6a4ff10a95331219232b891f'];
-        $this->assertSame('Ravel Introduction & Allegro | Pärnu Music Festival Gala', $parnu->summary);
+        $this->assertSame('Ravel Introduction & Allegro | Seaside Music Festival Gala', $parnu->summary);
         $this->assertNull($parnu->ensemble, 'no line in bold alone: no orchestra');
-        $this->assertSame('Anaëlle Tourret, harp', $parnu->performers[0]);
-        $this->assertContains('Mari Poll, Amanda Ernesaks, violin', $parnu->performers);
+        $this->assertSame('Jeanne Exemple, harp', $parnu->performers[0]);
+        $this->assertContains('Mia Saar, Eva Tamm, violin', $parnu->performers);
         $this->assertSame(['Maurice Ravel — Introduction et allegro, M46, for harp, flute, clarinet and string quartet'], $parnu->programme);
     }
 
@@ -120,7 +120,7 @@ final class SquarespaceParserTest extends TestCase
     {
         $data = json_decode((string) file_get_contents(__DIR__.'/../Fixtures/squarespace.json'), true);
 
-        $this->assertSame('https://www.anaelletourret.com/performances?offset=1771949630575&format=json', SquarespaceParser::nextPage($data, 'https://www.anaelletourret.com/performances?format=json'));
+        $this->assertSame('https://artist.example/performances?offset=1771949630575&format=json', SquarespaceParser::nextPage($data, 'https://artist.example/performances?format=json'));
         $this->assertNull(SquarespaceParser::nextPage(['pagination' => ['nextPage' => false]], 'https://example.org/events'));
         $this->assertSame('https://example.org/events?format=json', SquarespaceParser::jsonUrl('https://example.org/events'));
         $this->assertSame('https://example.org/events?format=json', SquarespaceParser::jsonUrl('https://example.org/events?format=json'));

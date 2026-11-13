@@ -22,7 +22,7 @@ final class GoogleCalendarLinkTest extends TestCase
     public function testATimedDateGoesInUtcWithItsTimezone(): void
     {
         $event = TestEvent::at('2026-11-14 20:00', 'Europe/Berlin', 'Perspectives concertantes & co');
-        $event->setVenue((new Venue('Elbphilharmonie', 'Hamburg'))->setPostcode('20457'));
+        $event->setVenue((new Venue('Harbour Hall', 'Hamburg'))->setPostcode('20457'));
         $event->setProgramme('Glière — Harp Concerto op. 74');
 
         $query = $this->query((new Ics())->google($event));
@@ -31,7 +31,7 @@ final class GoogleCalendarLinkTest extends TestCase
         $this->assertSame('Perspectives concertantes & co', $query['text']);
         $this->assertSame('20261114T190000Z/20261114T210000Z', $query['dates']); // no end: two hours
         $this->assertSame('Europe/Berlin', $query['ctz']);
-        $this->assertSame('Elbphilharmonie, 20457 Hamburg', $query['location']);
+        $this->assertSame('Harbour Hall, 20457 Hamburg', $query['location']);
         $this->assertSame("Programme:\nGlière — Harp Concerto op. 74", $query['details']);
     }
 

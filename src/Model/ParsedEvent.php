@@ -35,7 +35,7 @@ final class ParsedEvent
         public readonly ?string $conductor = null,
         /** A Role's value: "soloist", "chamber". */
         public readonly ?string $role = null,
-        /** @var list<string>|null one per line: "Anna Meyer, harp" */
+        /** @var list<string>|null one per line: "Anna Berg, harp" */
         public readonly ?array $performers = null,
         /** @var list<string>|null one work per line: "Glière — Harp Concerto op. 74" */
         public readonly ?array $programme = null,

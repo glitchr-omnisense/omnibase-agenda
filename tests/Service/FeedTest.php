@@ -18,14 +18,14 @@ final class FeedTest extends TestCase
     private function concert(): TestEvent
     {
         $event = TestEvent::at('2026-11-14 20:00', 'Europe/Berlin', 'Perspectives concertantes', '2026-11-14 22:00');
-        $event->setVenue((new Venue('Elbphilharmonie', 'Hamburg'))->setHall('Großer Saal')->setAddress('Platz der Deutschen Einheit 1')->setPostcode('20457')->setCountry('DE')->setLatitude(53.5413)->setLongitude(9.9841));
-        $event->setEnsemble('NDR Elbphilharmonie Orchester');
+        $event->setVenue((new Venue('Harbour Hall', 'Hamburg'))->setHall('Großer Saal')->setAddress('Hafenplatz 1')->setPostcode('20457')->setCountry('DE')->setLatitude(53.5413)->setLongitude(9.9841));
+        $event->setEnsemble('Hafen Sinfonieorchester');
         $event->setConductor('Alan Gilbert');
         $event->setRole(Role::SOLOIST);
         $event->setProgramme("Glière — Harp Concerto op. 74\nDebussy — Danses sacrée et profane");
-        $event->setPerformers('Anna Meyer, harp');
-        $event->setTicketsUrl('https://www.elbphilharmonie.de/tickets');
-        $event->setEventUrl('https://www.elbphilharmonie.de/en/whats-on/perspectives');
+        $event->setPerformers('Anna Berg, harp');
+        $event->setTicketsUrl('https://hall.example/tickets');
+        $event->setEventUrl('https://hall.example/en/whats-on/perspectives');
 
         return $event;
     }
@@ -45,8 +45,8 @@ final class FeedTest extends TestCase
         $this->assertSame('soloist', $data['role']);
         $this->assertSame('soloist', $data['roleLabel'], 'no translator: the value');
         $this->assertSame(['Glière — Harp Concerto op. 74', 'Debussy — Danses sacrée et profane'], $data['programme']);
-        $this->assertSame(['Anna Meyer, harp'], $data['performers']);
-        $this->assertSame('https://www.elbphilharmonie.de/tickets', $data['tickets']);
+        $this->assertSame(['Anna Berg, harp'], $data['performers']);
+        $this->assertSame('https://hall.example/tickets', $data['tickets']);
         $this->assertNull($data['image']);
         $this->assertSame(['name', 'hall', 'address', 'postcode', 'city', 'country', 'latitude', 'longitude', 'map', 'photo', 'photoCredit'], array_keys($data['venue']));
         $this->assertSame('Großer Saal', $data['venue']['hall']);
@@ -85,14 +85,14 @@ final class FeedTest extends TestCase
         $urls->method('getContext')->willReturn(new RequestContext('', 'GET', 'anna.example', 'https'));
         $feed = new Feed(new Ics(), $urls);
 
-        $hall = new TestVenue('Elbphilharmonie', 'Hamburg', 'elbphilharmonie-hamburg');
+        $hall = new TestVenue('Harbour Hall', 'Hamburg', 'harbour-hall-hamburg');
         $hall->testPhotoUrl = '/uploads/_/venue/_photo/0b2f';
         $hall->setPhotoCredit('Peter Kaminski');
         $event = $this->concert();
         $event->setVenue($hall);
 
         $data = $feed->event($event);
-        $this->assertSame('https://anna.example/agenda_venue_photo/elbphilharmonie-hamburg', $data['venue']['photo']);
+        $this->assertSame('https://anna.example/agenda_venue_photo/harbour-hall-hamburg', $data['venue']['photo']);
         $this->assertSame('Peter Kaminski', $data['venue']['photoCredit']);
         $this->assertSame($data['venue']['photo'], $data['image'], 'the house\'s photo, as the page shows it');
         $this->assertSame('Peter Kaminski', $data['imageCredit']);
@@ -106,7 +106,7 @@ final class FeedTest extends TestCase
 
         // Read by another site: the house's photo for its house, the date's cover for the date - not the photo twice.
         [$read] = (new FeedParser())->parse(['calendar' => ['name' => 'Anna'], 'events' => [$feed->event($event)], 'next' => null]);
-        $this->assertSame('https://anna.example/agenda_venue_photo/elbphilharmonie-hamburg', $read->place['photo']);
+        $this->assertSame('https://anna.example/agenda_venue_photo/harbour-hall-hamburg', $read->place['photo']);
         $this->assertSame('Peter Kaminski', $read->place['photoCredit']);
         $this->assertSame('https://anna.example/agenda_event_cover/a-concert', $read->image);
         $event->testCoverUrl = null;
@@ -116,10 +116,10 @@ final class FeedTest extends TestCase
 
     public function testTheDocument(): void
     {
-        $data = (new Feed(new Ics()))->document([$this->concert()], 'Anna Meyer', 'Europe/Berlin', 'https://anna.example/agenda.json?page=2', null, new \DateTimeImmutable('2026-10-03 08:00', new \DateTimeZone('UTC')));
+        $data = (new Feed(new Ics()))->document([$this->concert()], 'Anna Berg', 'Europe/Berlin', 'https://anna.example/agenda.json?page=2', null, new \DateTimeImmutable('2026-10-03 08:00', new \DateTimeZone('UTC')));
 
         $this->assertSame(['calendar', 'events', 'next'], array_keys($data));
-        $this->assertSame('Anna Meyer', $data['calendar']['name']);
+        $this->assertSame('Anna Berg', $data['calendar']['name']);
         $this->assertSame('2026-10-03T10:00:00+02:00', $data['calendar']['generatedAt']);
         $this->assertCount(1, $data['events']);
         $this->assertSame('https://anna.example/agenda.json?page=2', $data['next']);
@@ -127,7 +127,7 @@ final class FeedTest extends TestCase
 
     public function testWhatItWritesAnotherSiteReadsBack(): void
     {
-        $json = json_encode((new Feed(new Ics()))->document([$this->concert()], 'Anna Meyer', 'Europe/Berlin'));
+        $json = json_encode((new Feed(new Ics()))->document([$this->concert()], 'Anna Berg', 'Europe/Berlin'));
         $this->assertTrue(FeedParser::supports(json_decode($json, true)));
 
         [$event] = (new FeedParser())->parse($json);
@@ -135,14 +135,14 @@ final class FeedTest extends TestCase
         $this->assertSame('Perspectives concertantes', $event->summary);
         $this->assertSame('2026-11-14T20:00:00+01:00', $event->start->format('c'));
         $this->assertSame('Europe/Berlin', $event->timezone);
-        $this->assertSame('NDR Elbphilharmonie Orchester', $event->ensemble);
+        $this->assertSame('Hafen Sinfonieorchester', $event->ensemble);
         $this->assertSame('Alan Gilbert', $event->conductor);
         $this->assertSame('soloist', $event->role);
-        $this->assertSame(['Anna Meyer, harp'], $event->performers);
+        $this->assertSame(['Anna Berg, harp'], $event->performers);
         $this->assertCount(2, $event->programme);
-        $this->assertSame('https://www.elbphilharmonie.de/tickets', $event->tickets);
-        $this->assertSame('https://www.elbphilharmonie.de/en/whats-on/perspectives', $event->url);
-        $this->assertSame('Elbphilharmonie', $event->place['name']);
+        $this->assertSame('https://hall.example/tickets', $event->tickets);
+        $this->assertSame('https://hall.example/en/whats-on/perspectives', $event->url);
+        $this->assertSame('Harbour Hall', $event->place['name']);
         $this->assertSame('Großer Saal', $event->place['hall']);
         $this->assertSame('Hamburg', $event->place['city']);
         $this->assertSame('DE', $event->place['country']);

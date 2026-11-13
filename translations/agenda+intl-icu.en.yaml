@@ -65,7 +65,7 @@ admin:
     programme: "Programme"
     programme_help: "One work per line: “Glière — Harp Concerto op. 74”."
     performers: "Performers"
-    performers_help: "One per line: “Anna Meyer — harp”."
+    performers_help: "One per line: “Anna Berg — harp”."
     tickets_url: "Tickets (link)"
     event_url: "Organiser's page (link)"
     cover: "Picture"
@@ -119,13 +119,13 @@ admin:
       write: "A concert is an event of that calendar: the title is the concert's name, the location the hall and its address, the hours the concert's, and the description one piece of information per line - for example:"
     example:
       title: "Title: Perspectives concertantes — Glière"
-      where: "Location: Elbphilharmonie, Platz der Deutschen Einheit 1, 20457 Hamburg"
+      where: "Location: Harbour Hall, Hafenplatz 1, 20457 Hamburg"
       description_label: "Description:"
       description: |
-        Orchestra: NDR Elbphilharmonie Orchester
-        Conductor: Vasily Petrenko
+        Orchestra: Hafen Sinfonieorchester
+        Conductor: Viktor Lang
         Role: soloist
-        Tickets: https://www.elbphilharmonie.de/...
+        Tickets: https://hall.example/...
         Programme:
         Glière — Harp Concerto op. 74
         Debussy — Danses sacrée et profane
@@ -139,7 +139,7 @@ admin:
       role: "Role"
       role_words: "soloist, concertmaster, chamber, orchestra, recital, masterclass"
       performers: "Performers"
-      performers_help: "on the line, separated by commas (\"Anna Meyer, harp\"), or one per line under it"
+      performers_help: "on the line, separated by commas (\"Anna Berg, harp\"), or one per line under it"
       tickets: "Tickets"
       programme: "Programme"
       programme_help: "one work per line under it: \"Composer — Work\""

@@ -18,7 +18,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 /**
  * A date: a concert, a recital, a masterclass - or a school's open day. An
  * omnibase thread - title (the concert's name: "Perspectives concertantes -
- * NDR Elbphilharmonie"), headline, excerpt and text translated, slug,
+ * Hafen Sinfonie"), headline, excerpt and text translated, slug,
  * publication state and date - written in the back office
  * (Controller\Admin\Crud\EventCrudController) or read from a calendar
  * (Service\IcsImporter), with on top when it starts, where, with whom,
@@ -88,7 +88,7 @@ class Event extends Thread implements LinkableInterface
     #[ORM\Column(type: 'text', nullable: true)]
     protected ?string $programme = null;
 
-    /** One per line: "Anna Meyer — harp". */
+    /** One per line: "Anna Berg — harp". */
     #[ORM\Column(type: 'text', nullable: true)]
     protected ?string $performers = null;
 
@@ -322,7 +322,7 @@ class Event extends Thread implements LinkableInterface
     }
 
     /**
-     * The performers with what they play apart ("Anna Meyer — harp").
+     * The performers with what they play apart ("Anna Berg — harp").
      *
      * @return list<array{name: string, part: ?string}>
      */

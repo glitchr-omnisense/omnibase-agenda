@@ -14,14 +14,14 @@ final class IcsTest extends TestCase
 {
     private function concert(): TestEvent
     {
-        $event = TestEvent::at('2026-11-14 20:00', 'Europe/Berlin', 'Perspectives concertantes — NDR Elbphilharmonie, Hamburg', '2026-11-14 22:00');
-        $event->setVenue((new Venue('Elbphilharmonie', 'Hamburg'))->setHall('Großer Saal')->setAddress('Platz der Deutschen Einheit 1')->setPostcode('20457')->setCountry('de'));
-        $event->setEnsemble('NDR Elbphilharmonie Orchester');
+        $event = TestEvent::at('2026-11-14 20:00', 'Europe/Berlin', 'Perspectives concertantes — Hafen Sinfonie, Hamburg', '2026-11-14 22:00');
+        $event->setVenue((new Venue('Harbour Hall', 'Hamburg'))->setHall('Großer Saal')->setAddress('Hafenplatz 1')->setPostcode('20457')->setCountry('de'));
+        $event->setEnsemble('Hafen Sinfonieorchester');
         $event->setConductor('Alan Gilbert');
         $event->setRole(Role::SOLOIST);
         $event->setProgramme("Glière — Harp Concerto op. 74\n\nDebussy — Danses sacrée et profane; for harp and strings\nRavel — Introduction et allegro, for harp, flute, clarinet and string quartet");
-        $event->setPerformers("Anna Meyer — harp");
-        $event->setTicketsUrl('https://www.elbphilharmonie.de/en/whats-on/perspectives');
+        $event->setPerformers("Anna Berg — harp");
+        $event->setTicketsUrl('https://hall.example/en/whats-on/perspectives');
 
         return $event;
     }
@@ -41,7 +41,7 @@ final class IcsTest extends TestCase
 
     public function testACalendarOfTwoDatesIsValidRfc5545(): void
     {
-        $ics = (new Ics())->calendar([$this->concert(), $this->festival()], 'Anna Meyer, harp');
+        $ics = (new Ics())->calendar([$this->concert(), $this->festival()], 'Anna Berg, harp');
 
         // CRLF everywhere, nothing else breaks a line.
         $this->assertStringEndsWith("END:VCALENDAR\r\n", $ics);
@@ -57,7 +57,7 @@ final class IcsTest extends TestCase
         $lines = IcsParser::unfold($ics);
         $this->assertSame('BEGIN:VCALENDAR', $lines[0]);
         $this->assertContains('VERSION:2.0', $lines);
-        $this->assertContains('X-WR-CALNAME:Anna Meyer\, harp', $lines);
+        $this->assertContains('X-WR-CALNAME:Anna Berg\, harp', $lines);
         $this->assertSame(2, \count(array_keys($lines, 'BEGIN:VEVENT')));
         $this->assertSame(2, \count(array_keys($lines, 'END:VEVENT')));
 
@@ -68,10 +68,10 @@ final class IcsTest extends TestCase
         $this->assertContains('TZOFFSETTO:+0100', $lines);
 
         // Escaped: commas, semicolons, line breaks.
-        $this->assertContains('SUMMARY:Perspectives concertantes — NDR Elbphilharmonie\, Hamburg', $lines);
+        $this->assertContains('SUMMARY:Perspectives concertantes — Hafen Sinfonie\, Hamburg', $lines);
         $description = current(array_filter($lines, fn ($l) => str_starts_with($l, 'DESCRIPTION:')));
         $this->assertStringContainsString('Glière — Harp Concerto op. 74\nDebussy — Danses sacrée et profane\; for harp and strings\nRavel — Introduction et allegro\, for harp', $description);
-        $this->assertContains('LOCATION:Elbphilharmonie\, Großer Saal\, Platz der Deutschen Einheit 1\, 20457 Hamburg\, DE', $lines);
+        $this->assertContains('LOCATION:Harbour Hall\, Großer Saal\, Hafenplatz 1\, 20457 Hamburg\, DE', $lines);
 
         // Whole days: dates, the end the day after the last; cancelled; its own UID kept.
         $this->assertContains('DTSTART;VALUE=DATE:20270705', $lines);
@@ -89,7 +89,7 @@ final class IcsTest extends TestCase
         $events = (new IcsParser('UTC'))->parse((new Ics())->calendar([$this->concert(), $this->festival()]));
 
         $this->assertCount(2, $events);
-        $this->assertSame('Perspectives concertantes — NDR Elbphilharmonie, Hamburg', $events[0]->summary);
+        $this->assertSame('Perspectives concertantes — Hafen Sinfonie, Hamburg', $events[0]->summary);
         $this->assertSame('2026-11-14T20:00:00+01:00', $events[0]->start->format('c'));
         $this->assertSame('Europe/Berlin', $events[0]->timezone);
         $this->assertStringContainsString("Debussy — Danses sacrée et profane; for harp and strings\n", $events[0]->description);
@@ -105,11 +105,11 @@ final class IcsTest extends TestCase
         [$read] = (new IcsParser('UTC'))->parse((new Ics())->calendar([$this->concert()]));
         $read = IcsImporter::described($read);
 
-        $this->assertSame('NDR Elbphilharmonie Orchester', $read->ensemble);
+        $this->assertSame('Hafen Sinfonieorchester', $read->ensemble);
         $this->assertSame('Alan Gilbert', $read->conductor);
         $this->assertSame('soloist', $read->role);
-        $this->assertSame(['Anna Meyer — harp'], $read->performers);
-        $this->assertSame('https://www.elbphilharmonie.de/en/whats-on/perspectives', $read->tickets);
+        $this->assertSame(['Anna Berg — harp'], $read->performers);
+        $this->assertSame('https://hall.example/en/whats-on/perspectives', $read->tickets);
         $this->assertSame([
             'Glière — Harp Concerto op. 74',
             'Debussy — Danses sacrée et profane; for harp and strings',

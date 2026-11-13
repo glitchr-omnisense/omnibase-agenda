@@ -31,10 +31,10 @@ final class IcsParserTest extends TestCase
         $this->assertSame('2026-11-14T22:00:00+01:00', $event->end->format('c'));
         // Unfolded (the space of continuation removed, nothing else), unescaped; the VALARM's DESCRIPTION ignored.
         $this->assertSame(
-            "Glière — Concerto pour harpe op. 74\nDebussy — Danses sacrée et profane, pour harpe et cordes\nRavel — Introduction et allegro (avec le Quatuor Ébène)",
+            "Glière — Concerto pour harpe op. 74\nDebussy — Danses sacrée et profane, pour harpe et cordes\nRavel — Introduction et allegro (avec le Quatuor Lumière)",
             $event->description,
         );
-        $this->assertSame('Philharmonie de Paris, 221 Avenue Jean Jaurès, 75019 Paris, France', $event->location);
+        $this->assertSame('Grande Salle de Paris, 12 Rue des Lilas, 75019 Paris, France', $event->location);
         $this->assertSame('2026-10-02T18:12:00+00:00', $event->lastModified->format('c'));
         $this->assertSame(2, $event->sequence);
         $this->assertFalse($event->cancelled);
@@ -95,12 +95,12 @@ final class IcsParserTest extends TestCase
     public function testALocationIsSplitIntoAVenue(): void
     {
         $this->assertSame(
-            ['name' => 'Philharmonie de Paris', 'address' => '221 Avenue Jean Jaurès', 'postcode' => '75019', 'city' => 'Paris'],
-            IcsImporter::splitLocation('Philharmonie de Paris, 221 Avenue Jean Jaurès, 75019 Paris, France'),
+            ['name' => 'Grande Salle de Paris', 'address' => '12 Rue des Lilas', 'postcode' => '75019', 'city' => 'Paris'],
+            IcsImporter::splitLocation('Grande Salle de Paris, 12 Rue des Lilas, 75019 Paris, France'),
         );
         $this->assertSame(
-            ['name' => 'Elbphilharmonie', 'address' => null, 'postcode' => null, 'city' => 'Hamburg'],
-            IcsImporter::splitLocation('Elbphilharmonie, Hamburg'),
+            ['name' => 'Harbour Hall', 'address' => null, 'postcode' => null, 'city' => 'Hamburg'],
+            IcsImporter::splitLocation('Harbour Hall, Hamburg'),
         );
         $this->assertSame(
             ['name' => 'Kurtheater', 'address' => null, 'postcode' => null, 'city' => null],
@@ -126,18 +126,18 @@ final class IcsParserTest extends TestCase
         $this->assertCount(2, $events);
         [$hamburg, $paris] = $events;
         $this->assertSame('2027-02-12T20:00:00+01:00', $hamburg->start->format('c'));
-        $this->assertSame('NDR Elbphilharmonie Orchester', $hamburg->ensemble);
-        $this->assertSame('Vasily Petrenko', $hamburg->conductor);
+        $this->assertSame('Hafen Sinfonieorchester', $hamburg->ensemble);
+        $this->assertSame('Viktor Lang', $hamburg->conductor);
         $this->assertSame('soloist', $hamburg->role);
-        $this->assertSame('https://www.elbphilharmonie.de/fr/programme/perspectives-concertantes/12345', $hamburg->tickets);
+        $this->assertSame('https://hall.example/fr/programme/perspectives-concertantes/12345', $hamburg->tickets);
         $this->assertSame(['Glière — Concerto pour harpe op. 74', 'Debussy — Danses sacrée et profane'], $hamburg->programme);
         $this->assertNull($hamburg->performers);
 
         // Google's HTML: the bold word, the line breaks, its wrapped link.
-        $this->assertSame(['Quatuor Ébène', 'Anna Meyer, harpe'], $paris->performers);
+        $this->assertSame(['Quatuor Lumière', 'Anna Berg, harpe'], $paris->performers);
         $this->assertSame('chamber', $paris->role);
         $this->assertSame(['Ravel — Introduction et allegro', 'Debussy — Sonate pour flûte, alto et harpe'], $paris->programme);
-        $this->assertSame('https://www.philharmoniedeparis.fr/fr/activite/12345', $paris->tickets);
+        $this->assertSame('https://salle.example/fr/activite/12345', $paris->tickets);
         $this->assertNull($paris->ensemble);
     }
 

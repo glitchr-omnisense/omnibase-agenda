@@ -10,7 +10,7 @@ phone, an agency's feed, a former Squarespace site, another omnibase site.
 
 An `Event` **is** an omnibase `Thread` (a JOINED subclass), so it inherits what
 every thread has - a title (the concert's name: *Perspectives concertantes -
-NDR Elbphilharmonie*), a headline, an excerpt, the text (EditorJS or HTML),
+Hafen Sinfonie*), a headline, an excerpt, the text (EditorJS or HTML),
 tags, owners, a slug, publish states and scheduling, revisions, soft delete,
 translations - and the bundle adds the moment (`startsAt`, `endsAt`, the hall's
 `timezone`, `allDay`), the `venue`, the `ensemble` and the `conductor`, the
@@ -34,13 +34,22 @@ the house that stays.
 ## Install
 
 ```bash
-composer require omnibase/agenda:dev-main
+composer require omnibase/agenda
 ```
+
+Under Symfony it runs on the core's Symfony host: Composer brings `omnisense/omnibase` 5.1 and
+`omnibridge/symfony` with it; `config/bundles.php` registers the core's bundle before this one
+(see the core's README for the other bundles a site usually adds):
 
 ```php
 // config/bundles.php
+Omnibridge\Symfony\Omnibase\BaseBundle::class => ['all' => true],
+Base\Admin\AdminBundle::class => ['all' => true],
 Base\Agenda\AgendaBundle::class => ['all' => true],
 ```
+
+With the routes below and the schema updated, `/agenda` lists the dates and `/agenda.ics` is
+their calendar feed; a date added in the back office shows there at once.
 
 ```yaml
 # config/routes.yaml
@@ -115,19 +124,19 @@ type="application/json">`, in the `stylesheets` block, the one the host's
 
 ```json
 {
-  "calendar": {"name": "Anaëlle Tourret", "url": "https://…/agenda", "timezone": "Europe/Berlin", "ics": "https://…/agenda.ics", "generatedAt": "2026-10-03T10:57:17+02:00"},
+  "calendar": {"name": "Jeanne Exemple", "url": "https://…/agenda", "timezone": "Europe/Berlin", "ics": "https://…/agenda.ics", "generatedAt": "2026-10-03T10:57:17+02:00"},
   "events": [{
     "id": "squarespace:6aa6df513f879725ec9b82a2",
     "slug": "…", "url": "https://…/agenda/…", "ics": "https://…/agenda/….ics",
-    "title": "M. Fröst, A. Poga | NDR Elbphilharmonie Orchestra",
+    "title": "B. Laurent, C. Petit | Harbour Symphony Orchestra",
     "start": "2026-10-03T20:00:00+02:00", "end": "2026-10-03T22:00:00+02:00",
     "timezone": "Europe/Berlin", "allDay": false, "cancelled": false,
     "role": "orchestra", "roleLabel": "Orchestra",
-    "ensemble": "NDR Elbphilharmonie Orchestra", "conductor": "Andris Poga",
-    "performers": ["Martin Fröst, clarinet"],
+    "ensemble": "Harbour Symphony Orchestra", "conductor": "Carl Petit",
+    "performers": ["Bruno Laurent, clarinet"],
     "programme": ["Wolfgang Amadeus Mozart — Konzert für Klarinette und Orchester A-Dur KV 622"],
     "tickets": null, "eventUrl": null, "image": "https://…/agenda/venue/…/photo", "imageCredit": "Peter Kaminski",
-    "venue": {"name": "…", "hall": null, "address": "10 Fährstraße", "postcode": "17449", "city": "Peenemünde", "country": "DE", "latitude": 54.13, "longitude": 13.76, "map": "https://www.openstreetmap.org/…", "photo": "https://…/agenda/venue/…/photo", "photoCredit": "Peter Kaminski"},
+    "venue": {"name": "…", "hall": null, "address": "10 Hafenstraße", "postcode": "17449", "city": "Musterstadt", "country": "DE", "latitude": 54.13, "longitude": 13.76, "map": "https://www.openstreetmap.org/…", "photo": "https://…/agenda/venue/…/photo", "photoCredit": "Peter Kaminski"},
     "updatedAt": "2026-10-03T08:11:35+00:00"
   }],
   "next": null
@@ -204,10 +213,10 @@ iCalendar file, a Squarespace events collection, an agenda feed.
    information per line:
 
 ```
-Orchestre : NDR Elbphilharmonie Orchester
-Chef : Vasily Petrenko
+Orchestre : Hafen Sinfonieorchester
+Chef : Viktor Lang
 Rôle : soliste
-Billets : https://www.elbphilharmonie.de/...
+Billets : https://hall.example/...
 Programme :
 Glière — Concerto pour harpe op. 74
 Debussy — Danses sacrée et profane
@@ -219,7 +228,7 @@ Orchestre / Orchester* (the ensemble), *Conductor / Chef / Direction /
 Dirigent / Leitung / Direttore*, *Role / Rôle / Rolle / Ruolo* (soloist,
 concertmaster, chamber, orchestra, recital, masterclass in any of the four
 languages), *With / Avec / Mit / Con* (the performers: on the line,
-comma-separated - "Anna Meyer, harpe" stays one -, or one per line under
+comma-separated - "Anna Berg, harpe" stays one -, or one per line under
 it), *Tickets / Billets / Karten / Biglietti* (the first address), *Programme
 / Program / Programm / Programma* (the lines under it, until a blank line or
 another word). A line no word opens is the programme once a word was read;

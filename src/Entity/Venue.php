@@ -94,7 +94,7 @@ class Venue
     #[ORM\Column(type: 'json', nullable: true)]
     protected ?array $aliases = null;
 
-    /** From the name and the city: "elbphilharmonie-hamburg". */
+    /** From the name and the city: "harbour-hall-hamburg". */
     #[ORM\Column(length: 255, unique: true)]
     protected ?string $slug = null;
 
@@ -109,7 +109,7 @@ class Venue
         return $this->getLabel();
     }
 
-    /** What a house is known by in a calendar, whatever the case and the accents: "elbphilharmonie|hamburg". */
+    /** What a house is known by in a calendar, whatever the case and the accents: "harbour-hall|hamburg". */
     public static function key(?string $name, ?string $city): string
     {
         $city = null !== $city ? trim($city) : '';
@@ -230,7 +230,7 @@ class Venue
     public function getSlug(): ?string { return $this->slug; }
     public function setSlug(?string $slug): self { $this->slug = $slug ?: null; return $this; }
 
-    /** "Elbphilharmonie, Hamburg": the venue on a line of the list. */
+    /** "Harbour Hall, Hamburg": the venue on a line of the list. */
     public function getLabel(): string
     {
         return implode(', ', array_filter([$this->name, $this->city]));

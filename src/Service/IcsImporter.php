@@ -382,7 +382,7 @@ final class IcsImporter
     }
 
     /**
-     * "Elbphilharmonie, Platz der Deutschen Einheit 1, 20457 Hamburg, Germany":
+     * "Harbour Hall, Hafenplatz 1, 20457 Hamburg, Germany":
      * the name before the first comma, the town in the last part (the one
      * before it when the last is a country: no figure in it, a postcode in
      * the one before), the street in between.
@@ -578,7 +578,7 @@ final class IcsImporter
     {
         $place = $parsed->place;
         if (!$place && null !== $parsed->location && '' !== trim($parsed->location)) {
-            // The whole line kept: a house's name may hold a comma ("Elbphilharmonie, Great Hall").
+            // The whole line kept: a house's name may hold a comma ("Harbour Hall, Great Hall").
             $place = ['location' => trim($parsed->location)] + self::splitLocation($parsed->location);
         }
         if (!$place || '' === trim((string) ($place['name'] ?? ''))) {
