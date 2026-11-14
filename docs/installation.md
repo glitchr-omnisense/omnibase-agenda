@@ -21,7 +21,7 @@ its monthly digest.
 // config/bundles.php
 return [
     // ...
-    Base\BaseBundle::class => ['all' => true],
+    Omnibridge\Symfony\Omnibase\BaseBundle::class => ['all' => true],
     Base\Admin\AdminBundle::class => ['all' => true],
     Base\Agenda\AgendaBundle::class => ['all' => true],
 ];
