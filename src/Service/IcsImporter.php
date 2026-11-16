@@ -2,6 +2,7 @@
 
 namespace Base\Agenda\Service;
 
+use Base\Database\Type\Utc;
 use Base\Agenda\Entity\Event;
 use Base\Agenda\Entity\Venue;
 use Base\Agenda\Enum\Role;
@@ -12,7 +13,7 @@ use Base\Agenda\Repository\EventRepository;
 use Base\Agenda\Repository\VenueRepository;
 use Base\Enum\ThreadState;
 use Base\Service\SettingBagInterface;
-use Doctrine\ORM\EntityManagerInterface;
+use Base\Contract\UnitOfWork;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -74,7 +75,7 @@ final class IcsImporter
 
     /** @param list<string> $sources */
     public function __construct(
-        private readonly EntityManagerInterface $entityManager,
+        private readonly UnitOfWork $unitOfWork,
         private readonly EventRepository $events,
         private readonly VenueRepository $venueRepository,
         private readonly IcsParser $parser,
@@ -130,7 +131,7 @@ final class IcsImporter
      */
     public function remember(ImportSummary $summary, ?\DateTimeInterface $at = null): void
     {
-        $at = \DateTimeImmutable::createFromInterface($at ?? new \DateTimeImmutable())->format(\DATE_ATOM);
+        $at = \DateTimeImmutable::createFromInterface($at ?? Utc::now())->format(\DATE_ATOM);
         try {
             $this->writeSetting(self::LAST_SYNC_SETTING, ['at' => $at, ...$summary->toArray(), 'errors' => $summary->errors]);
             if (!$summary->isEmpty() || $summary->errors) {
@@ -201,7 +202,7 @@ final class IcsImporter
             $cancel ? $event->setCancelled(true) : $event->setSource(null);
             ++$settled;
         }
-        $this->entityManager->flush();
+        $this->unitOfWork->flush();
         $this->writeSetting(self::MISSING_SETTING, array_values(array_diff($waiting, array_map('intval', $ids))));
 
         return $settled;
@@ -269,7 +270,7 @@ final class IcsImporter
             if (!$event) {
                 $summary->record(new Change(Change::CREATED, $parsed->summary, self::clock($parsed->start, $parsed->timezone, $parsed->allDay), null, $this->diff(null, $proposal)));
                 if ($apply) {
-                    $this->entityManager->persist($this->create($parsed, $source, $proposal));
+                    $this->unitOfWork->persist($this->create($parsed, $source, $proposal));
                 }
                 continue;
             }
@@ -302,7 +303,7 @@ final class IcsImporter
         }
 
         if ($apply) {
-            $this->entityManager->flush();
+            $this->unitOfWork->flush();
         }
         $this->venues = [];
 
@@ -421,7 +422,7 @@ final class IcsImporter
         $event->setSourceUpdatedAt($parsed->lastModified);
         $this->apply($event, $proposal);
         $event->setState(ThreadState::PUBLISH);
-        $event->setPublishedAt(new \DateTime());
+        $event->setPublishedAt(\DateTime::createFromImmutable(Utc::now()));
         $this->pictures($event, $parsed);
 
         return $event;
@@ -619,7 +620,7 @@ final class IcsImporter
             ->setCountry(isset($place['country']) && preg_match('/^[A-Za-z]{2}$/', (string) $place['country']) ? $place['country'] : null)
             ->setLatitude($place['latitude'] ?? null)
             ->setLongitude($place['longitude'] ?? null);
-        $this->entityManager->persist($venue);
+        $this->unitOfWork->persist($venue);
 
         return $venue;
     }

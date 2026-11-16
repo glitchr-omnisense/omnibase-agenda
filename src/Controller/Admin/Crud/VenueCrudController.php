@@ -11,6 +11,7 @@ use Base\Admin\Controller\AbstractCrudController;
 use Base\Admin\Filter\Filters;
 use Base\Agenda\Entity\Event;
 use Base\Agenda\Entity\Venue;
+use Base\Database\Repository\Finder\Key;
 use Base\Agenda\Repository\VenueRepository;
 use Base\Field\ArrayField;
 use Base\Field\CountryField;
@@ -103,7 +104,7 @@ class VenueCrudController extends AbstractCrudController
         /** @var Venue $venue */
         $venue = $this->findEntity($entityId);
         /** @var VenueRepository $venues */
-        $venues = $this->entityManager->getRepository(Venue::class);
+        $venues = $this->repositories->of(Venue::class);
 
         if ($request->isMethod('POST')) {
             $into = $venues->find($request->request->getInt('into'));
@@ -119,12 +120,15 @@ class VenueCrudController extends AbstractCrudController
             return $this->redirect($this->adminUrlGenerator->setController(static::class)->setAction(Action::DETAIL)->setEntityId($into->getId())->generateUrl());
         }
 
+        // The dates of each house: a count per house (a site has a few dozen), where one GROUP BY counted them all.
+        $events = $this->repositories->of(Event::class);
+        $all = $venues->findAllByName();
         $counts = [];
-        foreach ($this->entityManager->createQuery('SELECT IDENTITY(e.venue) AS venue, COUNT(e.id) AS dates FROM '.Event::class.' e WHERE e.venue IS NOT NULL GROUP BY e.venue')->getArrayResult() as $row) {
-            $counts[(int) $row['venue']] = (int) $row['dates'];
+        foreach ($all as $house) {
+            $counts[$house->getId()] = $events->count(['venue' => Key::of($house)]);
         }
         $others = [];
-        foreach ($venues->findAllByName() as $other) {
+        foreach ($all as $other) {
             if ($other->getId() !== $venue->getId()) {
                 $others[] = ['venue' => $other, 'dates' => $counts[$other->getId()] ?? 0, 'likeness' => self::likeness($venue, $other)];
             }

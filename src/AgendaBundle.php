@@ -2,7 +2,7 @@
 
 namespace Base\Agenda;
 
-use Omnibridge\Symfony\Omnibase\Bundle\AbstractBaseBundle;
+use Base\Bundle\AbstractBaseBundle;
 use Base\Traits\SingletonTrait;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 

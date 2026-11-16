@@ -2,6 +2,7 @@
 
 namespace Base\Agenda\Service;
 
+use Base\Database\Type\Utc;
 use Base\Agenda\Entity\Event;
 use Base\Agenda\Entity\Venue;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -39,7 +40,7 @@ final class Feed
                 'url' => $this->url('agenda_index'),
                 'timezone' => $timezone,
                 'ics' => $this->url('agenda_feed'),
-                'generatedAt' => \DateTimeImmutable::createFromInterface($now ?? new \DateTimeImmutable())->setTimezone(new \DateTimeZone($timezone))->format(\DATE_ATOM),
+                'generatedAt' => \DateTimeImmutable::createFromInterface($now ?? Utc::now())->setTimezone(new \DateTimeZone($timezone))->format(\DATE_ATOM),
             ],
             'events' => array_values(array_map(fn (Event $event) => $this->event($event, $locale), \is_array($events) ? $events : iterator_to_array($events, false))),
             'next' => $next,

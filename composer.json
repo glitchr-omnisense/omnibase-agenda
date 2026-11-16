@@ -8,8 +8,8 @@
         "php": "^8.2",
         "doctrine/orm": "^2.15|^3.0",
         "doctrine/doctrine-bundle": "^2.13|^3.0",
-        "omnibridge/symfony": "^1.1 || ^2.0",
-        "omnisense/omnibase": "^5.1 || ^6.0",
+        "omnibridge/symfony": "^1.0",
+        "omnisense/omnibase": "^1.0",
         "omnibase/admin": "^1.0",
         "symfony/config": "^6.0|^7.0|^8.0",
         "symfony/console": "^6.0|^7.0|^8.0",
@@ -22,7 +22,10 @@
         "twig/intl-extra": "^3.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^11.5"
+        "omnibridge/doctrine": "^1.0",
+        "omnibridge/eloquent": "^1.0",
+        "phpunit/phpunit": "^11.5",
+        "symfony/clock": "^6.2|^7.0|^8.0"
     },
     "suggest": {
         "omnibase/newsletter": "Adds the coming dates to the newsletter's digest (Digest\\AgendaDigestSource)."

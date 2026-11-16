@@ -10,6 +10,8 @@ use Base\Agenda\Service\Ics;
 use Base\Agenda\Service\JsonLd;
 use Base\Agenda\Service\Months;
 use Base\Attributes\Attribute\Sitemap;
+use Base\Contract\Runtime;
+use Base\Database\Type\Utc;
 use Base\Service\SettingBagInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -69,7 +71,7 @@ class AgendaController extends AbstractController
     #[Route('/agenda.ics', name: 'agenda_feed')]
     public function feed(): Response
     {
-        return $this->calendar($this->ics->calendar($this->events->findSince(new \DateTimeImmutable('-1 year')), $this->calendarName()), 'agenda.ics');
+        return $this->calendar($this->ics->calendar($this->events->findSince(Utc::from(Runtime::clock()->now())->modify('-1 year')), $this->calendarName()), 'agenda.ics');
     }
 
     /**

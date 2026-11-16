@@ -3,17 +3,30 @@
 namespace Base\Agenda\Repository;
 
 use Base\Agenda\Entity\Event;
+use Base\Contract\Runtime;
+use Base\Database\Repository\Finder\Criterion;
+use Base\Database\Repository\Finder\Group;
+use Base\Database\Repository\Finder\Parser;
 use Base\Enum\ThreadState;
-use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\ORM\QueryBuilder;
-use Doctrine\Persistence\ManagerRegistry;
+use Base\Database\Repository\Finders;
+use Base\Database\Repository\ServiceEntityRepository;
+use Base\Database\Type\Utc;
 
-/** @extends ServiceEntityRepository<Event> */
+/**
+ * The dates, read through omnibase's finder language (plan "base-agnostic", phase 1): criteria arrays, groups for
+ * the parentheses, nothing of a backend's query language. "Now" is the application's clock, in UTC (one time for
+ * every engine: no database clock); "today" and a month are the visitor's, in the visitor's zone (PHP's, which the
+ * host sets from the timezone cookie), as the instants that bound them.
+ *
+ * @method Event|null find($id, $lockMode = null, $lockVersion = null)
+ * @method Event|null findOneBy(array $criteria, ?array $orderBy = null)
+ * @method Event[]    findBy(array $criteria, ?array $orderBy = null, $limit = null, $offset = null)
+ */
 class EventRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry)
+    public function __construct(Finders $finders)
     {
-        parent::__construct($registry, Event::class);
+        parent::__construct($finders, Event::class);
     }
 
     /**
@@ -24,10 +37,7 @@ class EventRepository extends ServiceEntityRepository
      */
     public function findUpcoming(?int $limit = null): array
     {
-        return $this->upcoming()
-            ->orderBy('e.startsAt', 'ASC')->addOrderBy('e.id', 'ASC')
-            ->setMaxResults($limit)
-            ->getQuery()->getResult();
+        return $this->findBy($this->upcoming(), ['startsAt' => 'ASC', 'id' => 'ASC'], $limit);
     }
 
     /**
@@ -38,52 +48,49 @@ class EventRepository extends ServiceEntityRepository
      */
     public function findToday(?\DateTimeImmutable $now = null): array
     {
-        $now ??= new \DateTimeImmutable();
-        $candidates = $this->published()
-            ->andWhere('e.cancelled = :no')->setParameter('no', false)
-            ->andWhere('(e.startsAt BETWEEN :from AND :to) OR (e.endsAt IS NOT NULL AND e.startsAt <= :to AND e.endsAt >= :from)')
-            ->setParameter('from', $now->modify('-36 hours'))->setParameter('to', $now->modify('+36 hours'))
-            ->orderBy('e.startsAt', 'ASC')
-            ->getQuery()->getResult();
+        $now ??= self::now();
+        $from = self::moment($now->modify('-36 hours'));
+        $to = self::moment($now->modify('+36 hours'));
+        $candidates = $this->findBy([...$this->published(), 'cancelled' => false, Group::of(
+            Parser::SEPARATOR_OR,
+            Group::of(Parser::SEPARATOR_AND,
+                Criterion::of('startsAt', $from, Parser::OPTION_GREATER_EQUAL),
+                Criterion::of('startsAt', $to, Parser::OPTION_LOWER_EQUAL),
+            ),
+            Group::of(Parser::SEPARATOR_AND,
+                Criterion::of('endsAt', null, Parser::OPTION_NOT_NULL),
+                Criterion::of('startsAt', $to, Parser::OPTION_LOWER_EQUAL),
+                Criterion::of('endsAt', $from, Parser::OPTION_GREATER_EQUAL),
+            ),
+        )], ['startsAt' => 'ASC']);
 
         return array_values(array_filter($candidates, static fn (Event $event) => $event->isToday($now)));
     }
 
     public function countUpcoming(): int
     {
-        return (int) $this->upcoming()
-            ->select('COUNT(e.id)')
-            ->getQuery()->getSingleScalarResult();
+        return $this->count($this->upcoming());
     }
 
     /**
      * A page of the published dates gone by, the latest first. Paged by
-     * hand: Doctrine's Paginator walks the SQL with an output walker
-     * omnibase's own SqlWalker is incompatible with.
+     * hand (a limit and an offset).
      *
      * @return list<Event>
      */
     public function findPast(?int $limit = null, int $page = 1): array
     {
-        return $this->past()
-            ->orderBy('e.startsAt', 'DESC')->addOrderBy('e.id', 'DESC')
-            ->setFirstResult($limit ? max(0, $page - 1) * $limit : 0)
-            ->setMaxResults($limit)
-            ->getQuery()->getResult();
+        return $this->findBy($this->past(), ['startsAt' => 'DESC', 'id' => 'DESC'], $limit, $limit ? max(0, $page - 1) * $limit : 0);
     }
 
     public function countPast(): int
     {
-        return (int) $this->past()
-            ->select('COUNT(e.id)')
-            ->getQuery()->getSingleScalarResult();
+        return $this->count($this->past());
     }
 
     public function findOnePublished(string $slug): ?Event
     {
-        return $this->published()
-            ->andWhere('e.slug = :slug')->setParameter('slug', $slug)
-            ->getQuery()->getOneOrNullResult();
+        return $this->findOneBy([...$this->published(), 'slug' => $slug]);
     }
 
     /**
@@ -94,20 +101,18 @@ class EventRepository extends ServiceEntityRepository
      */
     public function findBetween(\DateTimeInterface $from, \DateTimeInterface $to): array
     {
-        return $this->published()
-            ->andWhere('e.startsAt >= :from AND e.startsAt < :to')
-            ->setParameter('from', $from)->setParameter('to', $to)
-            ->orderBy('e.startsAt', 'ASC')->addOrderBy('e.id', 'ASC')
-            ->getQuery()->getResult();
+        return $this->findBy([...$this->published(), Group::of(Parser::SEPARATOR_AND,
+            Criterion::of('startsAt', self::moment($from), Parser::OPTION_GREATER_EQUAL),
+            Criterion::of('startsAt', self::moment($to), Parser::OPTION_LOWER),
+        )], ['startsAt' => 'ASC', 'id' => 'ASC']);
     }
 
     /** The published dates from $from on, in order: what a subscribed calendar holds. @return list<Event> */
     public function findSince(\DateTimeInterface $from): array
     {
-        return $this->published()
-            ->andWhere('e.startsAt >= :from')->setParameter('from', $from)
-            ->orderBy('e.startsAt', 'ASC')->addOrderBy('e.id', 'ASC')
-            ->getQuery()->getResult();
+        return $this->findBy([...$this->published(), Group::of(Parser::SEPARATOR_AND,
+            Criterion::of('startsAt', self::moment($from), Parser::OPTION_GREATER_EQUAL),
+        )], ['startsAt' => 'ASC', 'id' => 'ASC']);
     }
 
     /**
@@ -120,39 +125,39 @@ class EventRepository extends ServiceEntityRepository
      */
     public function findForFeed(bool $past = false, ?\DateTimeImmutable $from = null, ?\DateTimeImmutable $to = null, int $limit = 100, int $page = 1): array
     {
-        $query = match (true) {
+        $criteria = match (true) {
             $past => $this->past(),
             null !== $from || null !== $to => $this->published(),
             default => $this->upcoming(),
         };
         if ($from) {
-            $query->andWhere('e.startsAt >= :from OR (e.endsAt IS NOT NULL AND e.endsAt >= :from)')->setParameter('from', $from->setTime(0, 0));
+            $from = self::moment($from->setTime(0, 0));
+            $criteria[] = Group::of(Parser::SEPARATOR_OR,
+                Criterion::of('startsAt', $from, Parser::OPTION_GREATER_EQUAL),
+                Group::of(Parser::SEPARATOR_AND,
+                    Criterion::of('endsAt', null, Parser::OPTION_NOT_NULL),
+                    Criterion::of('endsAt', $from, Parser::OPTION_GREATER_EQUAL),
+                ),
+            );
         }
         if ($to) {
-            $query->andWhere('e.startsAt < :to')->setParameter('to', $to->setTime(0, 0)->modify('+1 day'));
+            $criteria[] = Group::of(Parser::SEPARATOR_AND, Criterion::of('startsAt', self::moment($to->setTime(0, 0)->modify('+1 day')), Parser::OPTION_LOWER));
         }
         $order = $past ? 'DESC' : 'ASC';
 
-        return $query
-            ->orderBy('e.startsAt', $order)->addOrderBy('e.id', $order)
-            ->setFirstResult(max(0, $page - 1) * $limit)
-            ->setMaxResults($limit + 1)
-            ->getQuery()->getResult();
+        return $this->findBy($criteria, ['startsAt' => $order, 'id' => $order], $limit + 1, max(0, $page - 1) * $limit);
     }
 
     /** Every published date, the latest first: the sitemap's. @return list<Event> */
     public function findAllPublished(int $limit = 5000): array
     {
-        return $this->published()
-            ->orderBy('e.startsAt', 'DESC')
-            ->setMaxResults($limit)
-            ->getQuery()->getResult();
+        return $this->findBy($this->published(), ['startsAt' => 'DESC'], $limit);
     }
 
-    /** The published dates of one month. @return list<Event> */
+    /** The published dates of one month (the visitor's, in the visitor's zone). @return list<Event> */
     public function findByMonth(int $year, int $month): array
     {
-        $from = new \DateTimeImmutable(sprintf('%04d-%02d-01', $year, $month));
+        $from = new \DateTimeImmutable(sprintf('%04d-%02d-01', $year, $month), new \DateTimeZone(Runtime::find(\Base\Contract\Locales::class)?->getTimezone() ?? date_default_timezone_get()));
 
         return $this->findBetween($from, $from->modify('+1 month'));
     }
@@ -171,31 +176,66 @@ class EventRepository extends ServiceEntityRepository
      */
     public function findUpcomingOfSource(string $source): array
     {
-        return $this->createQueryBuilder('e')
-            ->andWhere('e.source = :source')->setParameter('source', $source)
-            ->andWhere('e.cancelled = :no')->setParameter('no', false)
-            ->andWhere('e.startsAt >= :today')->setParameter('today', new \DateTimeImmutable('today'))
-            ->getQuery()->getResult();
+        return $this->findBy(['source' => $source, 'cancelled' => false, Group::of(Parser::SEPARATOR_AND,
+            Criterion::of('startsAt', self::today(), Parser::OPTION_GREATER_EQUAL),
+        )]);
     }
 
-    private function upcoming(): QueryBuilder
+    /** @return array<int|string, mixed> the criteria of the published dates to come (or still on: a date of several days) */
+    private function upcoming(): array
     {
-        return $this->published()
-            ->andWhere('e.startsAt >= :today OR (e.endsAt IS NOT NULL AND e.endsAt >= :today)')
-            ->setParameter('today', new \DateTimeImmutable('today'));
+        $today = self::today();
+
+        return [...$this->published(), Group::of(Parser::SEPARATOR_OR,
+            Criterion::of('startsAt', $today, Parser::OPTION_GREATER_EQUAL),
+            Group::of(Parser::SEPARATOR_AND,
+                Criterion::of('endsAt', null, Parser::OPTION_NOT_NULL),
+                Criterion::of('endsAt', $today, Parser::OPTION_GREATER_EQUAL),
+            ),
+        )];
     }
 
-    private function past(): QueryBuilder
+    /** @return array<int|string, mixed> the criteria of the published dates gone by */
+    private function past(): array
     {
-        return $this->published()
-            ->andWhere('e.startsAt < :today AND (e.endsAt IS NULL OR e.endsAt < :today)')
-            ->setParameter('today', new \DateTimeImmutable('today'));
+        $today = self::today();
+
+        return [...$this->published(), Group::of(Parser::SEPARATOR_AND,
+            Criterion::of('startsAt', $today, Parser::OPTION_LOWER),
+            Group::of(Parser::SEPARATOR_OR,
+                Criterion::of('endsAt', null, Parser::OPTION_NULL),
+                Criterion::of('endsAt', $today, Parser::OPTION_LOWER),
+            ),
+        )];
     }
 
-    private function published(): QueryBuilder
+    /**
+     * @return array<int|string, mixed> the criteria of the published dates: in the published state, out (no
+     *                                  publication date, or one gone by on the application's clock)
+     */
+    private function published(): array
     {
-        return $this->createQueryBuilder('e')
-            ->andWhere('e.state = :published')->setParameter('published', ThreadState::PUBLISH)
-            ->andWhere('e.publishedAt IS NULL OR e.publishedAt <= CURRENT_TIMESTAMP()');
+        return ['state' => ThreadState::PUBLISH, Group::of(Parser::SEPARATOR_OR,
+            Criterion::of('publishedAt', null, Parser::OPTION_NULL),
+            Criterion::of('publishedAt', self::now(), Parser::OPTION_LOWER_EQUAL),
+        )];
+    }
+
+    /** The application's clock, in UTC. */
+    private static function now(): \DateTimeImmutable
+    {
+        return Utc::from(Runtime::clock()->now());
+    }
+
+    /** The start of the visitor's today (in the visitor's zone) on the application's clock, as a bound of startsAt and endsAt. */
+    private static function today(): \DateTimeImmutable
+    {
+        return self::moment(Runtime::clock()->now()->setTimezone(new \DateTimeZone(Runtime::find(\Base\Contract\Locales::class)?->getTimezone() ?? date_default_timezone_get()))->setTime(0, 0));
+    }
+
+    /** A bound of startsAt or endsAt: the same moment in UTC, as both engines store those columns. */
+    private static function moment(\DateTimeInterface $at): \DateTimeImmutable
+    {
+        return \DateTimeImmutable::createFromInterface($at)->setTimezone(Utc::zone());
     }
 }

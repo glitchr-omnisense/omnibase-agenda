@@ -43,7 +43,7 @@ Under Symfony it runs on the core's Symfony host: Composer brings `omnisense/omn
 
 ```php
 // config/bundles.php
-Omnibridge\Symfony\Omnibase\BaseBundle::class => ['all' => true],
+Base\BaseBundle::class => ['all' => true],
 Base\Admin\AdminBundle::class => ['all' => true],
 Base\Agenda\AgendaBundle::class => ['all' => true],
 ```

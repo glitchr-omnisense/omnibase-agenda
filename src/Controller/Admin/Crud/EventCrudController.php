@@ -141,8 +141,8 @@ class EventCrudController extends AbstractCrudController
         /** @var Event $event */
         $event = $this->findEntity($entityId);
         $copy = $event->duplicate(' ('.$this->translator->trans('admin.event.copy', [], 'agenda').')');
-        $this->entityManager->persist($copy);
-        $this->entityManager->flush();
+        $this->unitOfWork->persist($copy);
+        $this->unitOfWork->flush();
         $this->addFlash('success', '@agenda.admin.event.flash.duplicated');
 
         return $this->redirect($this->adminUrlGenerator->setController(static::class)->setAction(Action::EDIT)->setEntityId($copy->getId())->generateUrl());

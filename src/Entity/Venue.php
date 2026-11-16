@@ -4,8 +4,7 @@ namespace Base\Agenda\Entity;
 
 use Base\Agenda\Repository\VenueRepository;
 use Base\Database\Attribute\Uploader;
-use Doctrine\ORM\Event\PrePersistEventArgs;
-use Doctrine\ORM\Mapping as ORM;
+use Base\Mapping as ORM;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -21,7 +20,6 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 #[ORM\Entity(repositoryClass: VenueRepository::class)]
 #[ORM\Table(name: 'agenda_venue')]
-#[ORM\HasLifecycleCallbacks]
 class Venue
 {
     #[ORM\Id]
@@ -140,32 +138,10 @@ class Venue
         return '' !== $slug ? $slug : 'venue';
     }
 
-    /**
-     * The slug is given once, when the venue is first saved: "-2" when another
-     * house has it - one already saved, or one waiting to be with this one (a
-     * calendar read opens many at once: "Bogota" and "Bogotá" make one slug).
+    /*
+     * The slug is given once, when the venue is first saved: Base\Agenda\EntityDispatcher\VenueEventDispatcher,
+     * whichever persistence keeps it.
      */
-    #[ORM\PrePersist]
-    public function giveSlug(PrePersistEventArgs $event): void
-    {
-        if ($this->slug) {
-            return;
-        }
-        $base = self::slugify($this->name, $this->city);
-        $manager = $event->getObjectManager();
-        $repository = $manager->getRepository(self::class);
-        $waiting = [];
-        foreach ($manager->getUnitOfWork()->getScheduledEntityInsertions() as $other) {
-            if ($other instanceof self && $other !== $this && $other->slug) {
-                $waiting[$other->slug] = true;
-            }
-        }
-        $slug = $base;
-        for ($i = 2; isset($waiting[$slug]) || $repository->findOneBy(['slug' => $slug]); ++$i) {
-            $slug = $base.'-'.$i;
-        }
-        $this->slug = $slug;
-    }
 
     public function getId(): ?int { return $this->id; }
 
