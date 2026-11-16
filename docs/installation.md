@@ -8,7 +8,7 @@ order: 10
 ## Requirements
 
 What `composer.json` requires: PHP 8.2 or later, `doctrine/orm` 2.15 or 3,
-`omnisense/omnibase` 5.1 or later 5.x, `omnibridge/symfony` 1.1 or later, `omnibase/admin` 1.x,
+`omnisense/omnibase` 7.0 or later 7.x, `omnibridge/symfony` 3.0 or later, `omnibase/admin` 2.x,
 `doctrine/doctrine-bundle` 2.13 or 3,
 `twig/intl-extra` 3 (the templates' date filters), and `symfony/config`, `console`,
 `dependency-injection`, `form`, `http-client` (reading the calendars), `http-kernel`,
