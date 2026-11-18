@@ -22,7 +22,7 @@
         "twig/intl-extra": "^3.0"
     },
     "require-dev": {
-        "omnibridge/doctrine": "^3.0",
+        "omnibridge/doctrine": "^3.0|^4.0",
         "omnibridge/eloquent": "^2.0",
         "phpunit/phpunit": "^11.5",
         "symfony/clock": "^6.2|^7.0|^8.0"
